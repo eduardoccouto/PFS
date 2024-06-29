@@ -1,10 +1,11 @@
 import os
-import mysql.connector as connect
+import psycopg2
+from psycopg2 import sql
 from dotenv import load_dotenv
 
 load_dotenv()
 
-class MySQLDatabase:
+class PostgreSQLDatabase:
     
     def __init__(self):
         self._host = os.getenv("HOST")
@@ -14,12 +15,57 @@ class MySQLDatabase:
         self.conn = self._connecting()
     
     def _connecting(self):
-        return connect.connect(
+        conn = psycopg2.connect(
             host = self._host,
             database = self._database,
             user = self._user,
             password = self._password
         )
+        return conn
+    
+    def criar_tabela_enderecos(conn):
+        try:
+            cursor = conn.cursor()
+            
+            # SQL para criar a tabela
+            create_table_query = '''
+            CREATE TABLE IF NOT EXISTS enderecos (
+                cep CHAR (8) PRIMARY KEY NOT NULL,
+                logradouro VARCHAR(255) NOT NULL,
+                bairro VARCHAR(100) NOT NULL,
+                cidade_estado VARCHAR(100) NOT NULL,
+                
+            )
+            '''
+            
+            cursor.execute(create_table_query)
+            conn.commit()
+            print("Tabela criada com sucesso!")
+        except (Exception, psycopg2.Error) as error:
+            print("Erro ao criar a tabela:", error)
+
+    
+    def criar_tabela_tipo(conn):
+        try:
+            cursor = conn.cursor()
+            
+            # SQL para criar a tabela
+            create_table_query = '''
+            CREATE TABLE IF NOT EXISTS tipo (
+                cep CHAR (8) PRIMARY KEY NOT NULL,
+                logradouro VARCHAR(255) NOT NULL,
+                bairro VARCHAR(100) NOT NULL,
+                cidade_estado VARCHAR(100) NOT NULL,
+                
+            )
+            '''
+            
+            cursor.execute(create_table_query)
+            conn.commit()
+            print("Tabela criada com sucesso!")
+        except (Exception, psycopg2.Error) as error:
+            print("Erro ao criar a tabela:", error)
+
         
     # getters
     def get_database_tables(self):
