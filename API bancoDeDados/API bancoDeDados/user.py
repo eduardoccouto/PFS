@@ -1,4 +1,4 @@
 class UsuarioAutenticado:
-    def __init__(self, cpf, nome_usuario):
+    def __init__(self, cpf, senha_usuario):
         self.cpf = cpf
-        self.nome_usuario = nome_usuario
+        self.senha_usuario = senha_usuario
