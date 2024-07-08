@@ -1,5 +1,5 @@
 from connector import get_connection
-from crud import PostgreSQLCRUD
+from controller import PostGreeDB
 import os
 import psycopg2
 from dotenv import load_dotenv
@@ -12,13 +12,9 @@ from prestador import PrestadorAutenticado
 if __name__ == "__main__":
     conn = get_connection()
     if conn:
-        crud = PostgreSQLCRUD(conn)
-        crud.criar_tabela_enderecos()
-        crud.criar_tabela_tipo()
-        crud.criar_tabela_usuarios()
-        crud.criar_tabela_prestadores()
-        crud.criar_tabela_comentarios()
-        crud.criar_tabela_solicitacoes()
+        crud = PostGreeDB(conn)
+        crud._createTableTipo()
+        crud.criar_todas_as_tabelas()
         conn.close()
     else:
         print("Conexão não foi estabelecida.")
@@ -27,12 +23,12 @@ def sem_conta_prestador():
         prestador = {}
         while True:
             cnpj_temp = input("Digite o CNPJ do prestador (14 dígitos): ")
-            if (crud.buscar_cnpj(cnpj_temp) is False):
+            if (crud._buscar_cnpj(cnpj_temp) is False):
                  print("CNPJ já está cadastrado.")
                  break
             else:
                 prestador['cnpj'] = cnpj_temp
-                crud.buscar_cnpj
+
                 prestador['id_tipo_prestador'] = input("Digite o ID do tipo de prestador: ")
                 # como vamos fzr aqui? vamos mostrar a lista e pedir para ele digitar o nº?
                 # e a partir do número pesquisar o nome e setar?
@@ -103,8 +99,9 @@ def sem_conta_cliente():
     
     return cliente
 
-def tela_inicial():
-    subopcao = input("[1] Criar conta"+"\n[2] Já possuo conta")
+
+
+
 
 def login_cliente():
     cpf = input("Digite seu CPF (apenas números)")
@@ -137,13 +134,33 @@ def login_prestador():
             else:
                print("Senha incorreta. ") 
                return None           
-            
+
+def tela_inicial(opcao):
+    subopcao = int(input("[1] Criar conta"+"\n[2] Já possuo conta"))
+
+    match subopcao:
+        case 1:
+            if (opcao == 1):
+                sem_conta_prestador()
+            elif (opcao == 2):
+                sem_conta_cliente()
+            else:
+                print("Opção inválida.")            
+        case 2:
+            if (opcao == 1):
+                login_prestador()
+            elif (opcao == 2):
+                login_cliente()
+            else:
+                print("Opção inválida.") 
+                
+def main():
+    opcao = int(input("Você é prestador ou cliente?"+"\n[1] Prestador" + "\n[2] Cliente"+"\n"))
+    match opcao:
+        case 1:
+            tela_inicial(1)
+        case 2:
+            tela_inicial(2)
 
 
-
-opcoes = {
-    '1': opcao_prestador,
-    '2': opcao_cliente,
-}
-
-opcao = input("Você é prestador ou cliente?"+"\n[1] Prestador" + "\n[2] Cliente")
+main()
