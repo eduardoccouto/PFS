@@ -1,21 +1,22 @@
-import psycopg2 as connector
+import psycopg2 as _connector
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
 
+load_dotenv()
 
 class PostGreeDB:
 
-    def __init__(self, connection):
+    def __init__(self):
         self._user = os.getenv("DB_USER")
-        self._password = os.getenv("DB_PASS")
-        self._database = os.getenv("DATABASE")
+        self._password = os.getenv("DB_PASSWORD")
+        self._database = os.getenv("DB_NAME")
         self._host = os.getenv("DB_HOST")
-        self._conn = connection
+        self._conn = self._getConnection()
+        self.criar_todas_as_tabelas()
 
     def _getConnection(self):
-        return connector.connect(
+        return _connector.connect(
             user=self._user,
             password=self._password,
             host=self._host,
@@ -189,7 +190,7 @@ class PostGreeDB:
         dict_of_tables = self._querying('SHOW tables;')
         print(f'Lista de tabelas no banco de dados {self._database}!\n')
         for table in dict_of_tables:
-            print(' '.join(['-', table['Tables_in_'+self._database]]))
+            print(' '.join(['-', table['Tables_in_' + self._database]]))
         return dict_of_tables
 
     def get_database_tables(self):
@@ -223,20 +224,21 @@ class PostGreeDB:
     # método para adicionar algo, por exempl, então precisa do dicionáio
     def _execute_query_with_dict(self, query: str, attr: dict):
         try:
-            cursor = self.conn.cursor(dictionary=True)
-            cursor.execute(query, params= attr)
+            cursor = self._conn.cursor()
+            cursor.execute(query, attr)
+            self._conn.commit()
         except TypeError as err:
-            raise (f'An error occur during the insert '
+            raise (f'An error occur during the insert ' +
                     f'operation on {self._database}\n Message:'
                     f'{err}')
         
     # método para quando não é necessario receber um dicionário de informações
     def _querying(self, query: str):
 
-        if (not self._conn._getConnection()) or self._conn is None:
+        if (not self._getConnection()) or self._conn is None:
             self._conn = self._getConnection()
 
-        cursor = self._conn.cursor(dictionary=True)
+        cursor = self._conn.cursor()
         cursor.execute(query)
         result = cursor.fetchall() # recupera todos os resultados restantes de uma consulta executada anteriormente
         cursor.close()
@@ -272,7 +274,7 @@ class PostGreeDB:
         except Exception as err:
             raise Exception(f'Message: {err}')  # Levanta uma instância de Exception com a mensagem do erro
 
-        self.conn.commit()
+        self._conn.commit()
         return True
 
 
@@ -292,13 +294,13 @@ class PostGreeDB:
         data["id"] = id
         update_query = "UPDATE users SET name = %(name)s"
         self._execute_query_with_dict(update_query, data)
-        self.conn.commit()
+        self._conn.commit()
 
     def delete_instance(self, table_name: str, condition: str, value):
         self._is_on_database(table_name)
         delete_query = f"DELETE FROM {table_name} WHERE {condition} = %s"
         self._execute_query_with_dict(delete_query, value)
-        self.conn.commit()
+        self._conn.commit()
 
     def buscar_endereco_por_cep(self, cep):
         query = f"SELECT * FROM enderecos WHERE cep = '{cep}'"
@@ -322,10 +324,9 @@ class PostGreeDB:
         return False
     
     def buscar_cpf(self, cpf):
-        query = f"SELECT * FROM prestadores WHERE cpf = '{cpf}'"
-        result = self._querying(query)
-        if result:
-            return False  
+        query = f"SELECT * FROM usuarios WHERE cpf = '{cpf}';"
+        if self._querying(query):
+            return False
         return True
     
     def validar_login_usuario(self, cpf, senha):

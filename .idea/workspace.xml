@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="46913bab-88ce-4ecf-909a-55fdf86e9904" name="Changes" comment="slay">
+      <change beforePath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/.env" beforeDir="false" afterPath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/connector.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/crud.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/API bancoDeDados/API bancoDeDados/main.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;eduardoccouto&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/eduardoccouto/PFS.git&quot;,
+    &quot;accountId&quot;: &quot;02b3a700-c2fa-42eb-9915-369ab60cd973&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="2ixqJympZmGHZH5YlTDCEnxUTSl" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.controller.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "final"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-5b207ade9991-746f403e7f0c-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.17890.14" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="46913bab-88ce-4ecf-909a-55fdf86e9904" name="Changes" comment="" />
+      <created>1720442507722</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1720442507722</updated>
+    </task>
+    <task id="LOCAL-00001" summary="slay">
+      <option name="closed" value="true" />
+      <created>1720447323609</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1720447323610</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="slay" />
+    <option name="LAST_COMMIT_MESSAGE" value="slay" />
+  </component>
+</project>
