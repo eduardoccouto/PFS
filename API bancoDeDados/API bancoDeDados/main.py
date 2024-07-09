@@ -22,9 +22,6 @@ def sem_conta_prestador():
 
     else:
         prestador['cnpj'] = cnpj_temp
-        # como vamos fzr aqui? vamos mostrar a lista e pedir para ele digitar o nº?
-        # e a partir do número pesquisar o nome e setar?
-        
         print("Digite o tipo de serviço: ")
         conn.mostrar_tipos() 
         opcaoTipo = input("Opção: ")
@@ -40,31 +37,39 @@ def sem_conta_prestador():
             prestador['numero_telefone_prestador'] = input("Digite seu número de telefone (apenas números): ")
             prestador['descricao'] = input("Digite a descrição (até 600 caracteres): ")
 
-    # Coleta e busca do CEP
+            # Coleta e busca do CEP
 
-    cep = input("Digite o CEP: ")
-    endereco = conn.buscar_endereco_por_cep(cep)
-    if endereco:
-        prestador['cep'] = cep
-        prestador['logradouro'] = endereco['logradouro']
-        prestador['bairro'] = endereco['bairro']
-        prestador['cidade'] = endereco['cidade']
-        prestador['numero_endereco'] = input("Digite o número do endereço: ")
-        prestador['complemento'] = input("Digite o complemento do endereço: ")
+            cep = input("Digite o CEP: ")
+            endereco = conn.buscar_endereco_por_cep(cep)
+            lista = []
+            if endereco:
+                # Criar uma lista para armazenar os elementos da tupla
+                lista = [endereco[0]]
+            
+            endereco[1]
+            print(lista)
 
-    else:
-        print("CEP não encontrado. Por favor, tente novamente.")
+            if endereco:
+                prestador['cep'] = cep
+                prestador['logradouro'] = lista[1]
+                prestador['bairro'] = lista[2]
+                prestador['cidade'] = lista[3]
+                prestador['numero_endereco'] = input("Digite o número do endereço: ")
+                prestador['complemento'] = input("Digite o complemento do endereço: ")
 
-    query = """ INSERT INTO prestadores (cnpj, tipo_prestador, nome_prestador, senha_prestador, numero_telefone_prestador, descricao)
-                VALUES (%(cnpj)s, %(tipo_prestador)s, %(tipo_servico)s, %(nome_prestador)s, 
-                        %(senha_prestador)s, %(numero_telefone_prestador)s, %(descricao)s); """
-    try:
-        conn._execute_query_with_dict(query, prestador)
-        print("Prestador cadastrado com sucesso!")
-    except Exception as e:
-        print(f"Erro ao cadastrar prestador: {e}")
+            else:
+                print("CEP não encontrado. Por favor, tente novamente.")
 
-    return prestador
+            query = """ INSERT INTO prestadores (cnpj, tipo_prestador, nome_prestador, senha_prestador, numero_telefone_prestador, descricao)
+                        VALUES (%(cnpj)s, %(tipo_prestador)s, %(tipo_servico)s, %(nome_prestador)s, 
+                                %(senha_prestador)s, %(numero_telefone_prestador)s, %(descricao)s); """
+            try:
+                conn._execute_query_with_dict(query, prestador)
+                print("Prestador cadastrado com sucesso!")
+            except Exception as e:
+                print(f"Erro ao cadastrar prestador: {e}")
+
+            return prestador
 
 
 def sem_conta_cliente():

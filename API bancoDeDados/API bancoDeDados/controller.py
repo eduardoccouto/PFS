@@ -337,7 +337,7 @@ class PostGreeDB:
         query = f"SELECT * FROM enderecos WHERE cep = '{cep}'"
         result = self._querying(query)
         if result:
-            return result[0]  # Retorna o primeiro (e único) resultado
+            return result  # Retorna o primeiro (e único) resultado
         return None
     
     def _buscar_cnpj(self, cnpj):
