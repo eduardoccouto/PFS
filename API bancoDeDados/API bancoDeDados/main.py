@@ -4,6 +4,7 @@ import os
 from user import UsuarioAutenticado
 from prestador import PrestadorAutenticado
 
+
 if __name__ == "__main__":
     try:
         conn = PostGreeDB()
@@ -41,19 +42,16 @@ def sem_conta_prestador():
 
             cep = input("Digite o CEP: ")
             endereco = conn.buscar_endereco_por_cep(cep)
-            lista = []
-            if endereco:
-                # Criar uma lista para armazenar os elementos da tupla
-                lista = [endereco[0]]
-            
-            endereco[1]
-            print(lista)
+            endereco_tupla = endereco[0]
 
+            # Desempacota a tupla
+            cep, logradouro, bairro, cidade = endereco_tupla
+            
             if endereco:
                 prestador['cep'] = cep
-                prestador['logradouro'] = lista[1]
-                prestador['bairro'] = lista[2]
-                prestador['cidade'] = lista[3]
+                prestador['logradouro'] = logradouro
+                prestador['bairro'] = bairro
+                prestador['cidade'] = cidade
                 prestador['numero_endereco'] = input("Digite o número do endereço: ")
                 prestador['complemento'] = input("Digite o complemento do endereço: ")
 
@@ -65,6 +63,8 @@ def sem_conta_prestador():
                                 %(senha_prestador)s, %(numero_telefone_prestador)s, %(descricao)s); """
             try:
                 conn._execute_query_with_dict(query, prestador)
+                prestador_autenticado = PrestadorAutenticado(cnpj_temp, prestador['senha_prestador'])
+                return prestador_autenticado
                 print("Prestador cadastrado com sucesso!")
             except Exception as e:
                 print(f"Erro ao cadastrar prestador: {e}")
@@ -93,7 +93,8 @@ def sem_conta_cliente():
             """
             try:
                 conn._execute_query_with_dict(query, cliente)
-                print("Cliente cadastrado com sucesso!")
+                usuario_autenticado = UsuarioAutenticado(cpf_temp, cliente['senha_usuario'])
+                return usuario_autenticado
                 break
             except psycopg2.errors as e:
                 print(f"Erro ao cadastrar cliente: {e}")
@@ -129,11 +130,26 @@ def login_prestador():
         else:
             senha = input("Informe sua senha: ")
             if (conn.validar_login_prestador == True):
-                usuario_autenticado = PrestadorAutenticado(cnpj, senha)
-                return usuario_autenticado
+                prestador_autenticado = PrestadorAutenticado(cnpj, senha)
+                return prestador_autenticado
             else:
                 print("Senha incorreta. ")
                 return None
+
+def menu_prestador(prestador_autenticado):
+    print("Seja bem-vindo(a) ao Serve Para Você!")
+    print("O que você deseja?")
+    op = int(input("[1] Visualizar solicitações de serviço" + "\n[2] Meu perfil" + "\nOpção: "))
+    cnpj_atual = prestador_autenticado.cnpj
+    match op:
+        case 1:
+            tipo_atual = conn.retornaTipoCNPJ(cnpj_atual)
+            conn.visualizar_solicitacoes(tipo_atual)
+            # escrever aqui o menu que ira pedir qual solicitação ele quer agendar
+        case 2:
+            conn.visualizar_prestador(cnpj_atual)
+            resultado = conn.visualizar_servicos_perfil(cnpj_atual)
+            # prestador vai ver qual solicitaçãoes ele quer cancelar/realizar
 
 
 def tela_inicial(opcao):
@@ -163,6 +179,7 @@ def main():
         case 1:
             os.system('cls') or None
             tela_inicial(1)
+            menu_prestador()
 
         case 2:
             tela_inicial(2)

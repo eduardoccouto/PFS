@@ -153,7 +153,7 @@ class PostGreeDB:
             
             # SQL para criar a tabela
             create_table_query = '''
-            CREATE TABLE IF NOT EXISTS tipo (
+            CREATE TABLE IF NOT EXISTS solicitacoes (
                 id_solicitacao SERIAL PRIMARY KEY,
                 FOREIGN KEY (cpf_coment)
                     REFERENCES usuarios(cpf),
@@ -258,6 +258,42 @@ class PostGreeDB:
             raise (f'An error occur during the insert ' +
                     f'operation on {self._database}\n Message:'
                     f'{err}')
+    
+    def visualizar_prestador(self, cnpj):
+        query = (f"SELECT * FROM prestadores WHERE cnpj='{cnpj}'")
+        result = self._querying(query)
+        if result:
+            return True  
+        return False
+    
+    def visualizar_cliente(self, cpf):
+        query = (f"SELECT * FROM usuarios WHERE cnpj='{cpf}'")
+        result = self._querying(query)
+        if result:
+            return True  
+        return False
+
+    def retornaTipoCNPJ(self, cnpj):
+        query = (f"SELECT tipo FROM prestadores WHERE cnpj='{cnpj}'")
+        result = self._querying(query)
+        if result:
+            return True  
+        return False
+
+
+    def visualizar_solicitacoes(self, tipo):
+        query = (f"SELECT * FROM solicitacoes WHERE tipo='{tipo}'")
+        result = self._querying(query)
+        if result:
+            return True  
+        return False
+    
+    def visualizar_servicos_perfil(self, cnpj):
+        query = (f"SELECT * FROM solicitacoes WHERE cnpj_coment='{cnpj}'")
+        result = self._querying(query)
+        if result:
+            return True  
+        return False
         
     
         
