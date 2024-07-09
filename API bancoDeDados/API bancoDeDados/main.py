@@ -1,12 +1,13 @@
 import psycopg2
 from controller import *
+import os
 from user import UsuarioAutenticado
 from prestador import PrestadorAutenticado
 
 if __name__ == "__main__":
     try:
         conn = PostGreeDB()
-        print('Conexão bem sucessidida')
+        print('Conexão bem sucedida')
     except psycopg2.errors as err:
         print('Não foi possivel estabelecer conexão ao banco de dados. '
               f'Erro: {err}')
@@ -14,7 +15,6 @@ if __name__ == "__main__":
 
 def sem_conta_prestador():
     prestador = {}
-
     cnpj_temp = input("Digite o CNPJ do prestador (14 dígitos): ")
 
     if (conn._buscar_cnpj(cnpj_temp) is False):
@@ -22,16 +22,23 @@ def sem_conta_prestador():
 
     else:
         prestador['cnpj'] = cnpj_temp
-
-        prestador['id_tipo_prestador'] = input("Digite o ID do tipo de prestador: ")
         # como vamos fzr aqui? vamos mostrar a lista e pedir para ele digitar o nº?
         # e a partir do número pesquisar o nome e setar?
+        
+        print("Digite o tipo de serviço: ")
+        conn.mostrar_tipos() 
+        opcaoTipo = input("Opção: ")
+        resultado = conn.retornaTipo(opcaoTipo)
 
-        prestador['tipo_servico'] = input("Digite o tipo de serviço: ")
-        prestador['nome_prestador'] = input("Digite o nome do prestador: ")
-        prestador['senha_prestador'] = input("Digite a senha do prestador: ")
-        prestador['numero_telefone_prestador'] = input("Digite o número de telefone do prestador (11 dígitos): ")
-        prestador['descricao'] = input("Digite a descrição do prestador (até 600 caracteres): ")
+        if (resultado == False):
+            print ("Opção inválida.")
+        else:
+            prestador['id_tipo'] = opcaoTipo   
+            prestador['tipo_servico'] = resultado
+            prestador['nome_prestador'] = input("Digite o nome do seu estabelecimento: ")
+            prestador['senha_prestador'] = input("Digite sua senha: ")
+            prestador['numero_telefone_prestador'] = input("Digite seu número de telefone (apenas números): ")
+            prestador['descricao'] = input("Digite a descrição (até 600 caracteres): ")
 
     # Coleta e busca do CEP
 
@@ -48,8 +55,8 @@ def sem_conta_prestador():
     else:
         print("CEP não encontrado. Por favor, tente novamente.")
 
-    query = """ INSERT INTO prestadores (cnpj, id_tipo_prestador, tipo_prestador, nome_prestador, senha_prestador, numero_telefone_prestador, descricao)
-                VALUES (%(cnpj)s,%(id_tipo_prestador)s, %(tipo_prestador)s, %(tipo_servico)s, %(nome_prestador)s, 
+    query = """ INSERT INTO prestadores (cnpj, tipo_prestador, nome_prestador, senha_prestador, numero_telefone_prestador, descricao)
+                VALUES (%(cnpj)s, %(tipo_prestador)s, %(tipo_servico)s, %(nome_prestador)s, 
                         %(senha_prestador)s, %(numero_telefone_prestador)s, %(descricao)s); """
     try:
         conn._execute_query_with_dict(query, prestador)
@@ -149,6 +156,7 @@ def main():
     opcao = int(input("Você é prestador ou cliente?" + "\n[1] Prestador" + "\n[2] Cliente" + "\n"))
     match opcao:
         case 1:
+            os.system('cls') or None
             tela_inicial(1)
 
         case 2:

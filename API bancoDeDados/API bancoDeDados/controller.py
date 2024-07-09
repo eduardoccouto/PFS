@@ -70,6 +70,7 @@ class PostGreeDB:
 
                     cnpj char(14) PRIMARY KEY NOT NULL,
                     id_tipo INTEGER not null,
+                    tipo varchar(100) NOT NULL,
                     cep CHAR (8),
                     logradouro VARCHAR(255) NOT NULL,
                     bairro VARCHAR(100) NOT NULL,
@@ -201,7 +202,33 @@ class PostGreeDB:
             print(f'- {table[0]}')  # Access the first element of the tuple
         return dict_of_tables
     
+    def mostrar_tipos(self):
+        cursor = self._conn.cursor()
+        cursor.execute("SELECT * FROM tipo;")
 
+        # Obtenha todos os resultados da consulta
+        rows = cursor.fetchall()
+
+        # Formate e imprima os resultados
+        for row in rows:
+            print(f"[{row[0]}] {row[1]}")
+
+        cursor.close()
+    
+    def retornaTipo(self, id_tipo):
+        cursor = self._conn.cursor()
+        cursor.execute(f"SELECT tipo FROM tipo WHERE id_tipo = {id_tipo};")
+
+        # Obtenha todos os resultados da consulta
+        result = cursor.fetchall()
+        for tupla in result:
+            result = (tupla[0])
+        cursor.close()
+        if result:
+            return result
+        return False
+        
+            
     def desc_table(self, table):
         return self._querying(' '.join(['DESC', table]))
 
@@ -231,6 +258,8 @@ class PostGreeDB:
             raise (f'An error occur during the insert ' +
                     f'operation on {self._database}\n Message:'
                     f'{err}')
+        
+    
         
     # método para quando não é necessario receber um dicionário de informações
     def _querying(self, query: str):
@@ -262,6 +291,8 @@ class PostGreeDB:
         dict_of_tables = self._querying('SHOW tables;')
         return [table['Tables_in_' + self._database] for table in dict_of_tables]
 
+
+    
 
     #CRUD operations
     def create_line(self, attr: dict, table_name: str):
