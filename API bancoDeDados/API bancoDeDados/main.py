@@ -1,100 +1,140 @@
 import psycopg2
 from controller import *
-import os
 from user import UsuarioAutenticado
 from prestador import PrestadorAutenticado
+import time
+from limparTela import *
 
 
 if __name__ == "__main__":
+    
     try:
         conn = PostGreeDB()
-        print('Conexão bem sucedida')
+        print('Conexão bem sucedida!')
+        time.sleep(2)
+        limparTela()
+        
     except psycopg2.errors as err:
         print('Não foi possivel estabelecer conexão ao banco de dados. '
               f'Erro: {err}')
 
+#retorna valores atribuidos na base de endereços do banco de dados
+def buscaCep(cep):
+    endereco = conn.buscar_endereco_por_cep(cep=cep)
+    marcadores = ('cep', 'logradouro', 'bairro', 'cidade')
+    valores = []
+    for dados in endereco:
+                valores.append(dict(zip(marcadores, dados)))        
+    dict_endereco = valores[0]
+    
+    return dict_endereco # retorna o endereco em um formato de dicionario 
+    
+    
+
+def buscarCnpj(cnpj):
+    return conn._buscar_cnpj(cnpj=cnpj)
+
+def listaTiposDeServicos():
+    return conn.mostrar_tipos()
+
+def cadastraTipo():
+
+    print("====================================")
+    listaTiposDeServicos()
+    print("====================================")
+    op_tipo = input("Informe o cod. do tipo de serviço: ")
+    limparTela()
+    result = conn.retornaTipo(op_tipo)
+    
+    return op_tipo, result
+    
+    
+def coletaDadosPrestador(opcaoTipo, resultado, cnpj):
+    
+    prestador = {}
+    prestador['cnpj'] = cnpj
+    prestador['id_tipo'] = opcaoTipo   
+    prestador['tipo_prestador'] = resultado
+    prestador['nome_prestador'] = input("Digite o nome do seu estabelecimento: ")
+    prestador['senha_prestador'] = input("Digite sua senha: ")
+    prestador['numero_telefone_prestador'] = input("Digite seu número de telefone (apenas números): ")
+    prestador['descricao'] = input("Digite a descrição (até 600 caracteres): ")
+    
+    return prestador
+ 
+def cadastraEndereco(prestador : dict, cep, endereco : dict):
+    prestador['cep'] = cep
+    prestador['logradouro'] = endereco['logradouro']
+    prestador['bairro'] = endereco['bairro']
+    prestador['cidade'] = endereco['cidade']
+    prestador['numero_endereco'] = input("Digite o número do endereço: ")
+    prestador['complemento'] = input("Digite o complemento do endereço: ")
+    
+    return prestador
+
 
 def sem_conta_prestador():
-    prestador = {}
+    
     cnpj_temp = input("Digite o CNPJ do prestador (14 dígitos): ")
+    limparTela()
 
-    if (conn._buscar_cnpj(cnpj_temp) is False):
+    if (buscarCnpj(cnpj_temp) is False):
         print("CNPJ já está cadastrado.")
 
     else:
-        prestador['cnpj'] = cnpj_temp
-        print("Digite o tipo de serviço: ")
-        conn.mostrar_tipos() 
-        opcaoTipo = input("Opção: ")
-        resultado = conn.retornaTipo(opcaoTipo)
-
+        opcaoTipo, resultado = cadastraTipo()
+        
         if (resultado == False):
             print ("Opção inválida.")
         else:
-            prestador['id_tipo'] = opcaoTipo   
-            prestador['tipo_servico'] = resultado
-            prestador['nome_prestador'] = input("Digite o nome do seu estabelecimento: ")
-            prestador['senha_prestador'] = input("Digite sua senha: ")
-            prestador['numero_telefone_prestador'] = input("Digite seu número de telefone (apenas números): ")
-            prestador['descricao'] = input("Digite a descrição (até 600 caracteres): ")
-
-            # Coleta e busca do CEP
-
+            prestador = coletaDadosPrestador(opcaoTipo=opcaoTipo, resultado= resultado, cnpj=cnpj_temp)
             cep = input("Digite o CEP: ")
-            endereco = conn.buscar_endereco_por_cep(cep)
-            endereco_tupla = endereco[0]
-
-            # Desempacota a tupla
-            cep, logradouro, bairro, cidade = endereco_tupla
+            endereco = buscaCep(cep=cep)
+            limparTela()
             
             if endereco:
-                prestador['cep'] = cep
-                prestador['logradouro'] = logradouro
-                prestador['bairro'] = bairro
-                prestador['cidade'] = cidade
-                prestador['numero_endereco'] = input("Digite o número do endereço: ")
-                prestador['complemento'] = input("Digite o complemento do endereço: ")
-
+                prestador = cadastraEndereco(prestador, cep, endereco)
             else:
                 print("CEP não encontrado. Por favor, tente novamente.")
 
-            query = """ INSERT INTO prestadores (cnpj, tipo_prestador, nome_prestador, senha_prestador, numero_telefone_prestador, descricao)
-                        VALUES (%(cnpj)s, %(tipo_prestador)s, %(tipo_servico)s, %(nome_prestador)s, 
-                                %(senha_prestador)s, %(numero_telefone_prestador)s, %(descricao)s); """
             try:
-                conn._execute_query_with_dict(query, prestador)
-                prestador_autenticado = PrestadorAutenticado(cnpj_temp, prestador['senha_prestador'])
-                return prestador_autenticado
+                conn.create_line(prestador, 'prestadores')
                 print("Prestador cadastrado com sucesso!")
-            except Exception as e:
+            except psycopg2.errors as e:
                 print(f"Erro ao cadastrar prestador: {e}")
 
             return prestador
+        
+def buscarcpf(cpf):
+    return conn.buscar_cpf(cpf)
 
+def obterDadosCliente(cpf):
+    cliente = {}
+    cliente['cpf'] = cpf
+    cliente['nome_usuario'] = input("Digite seu nome: ")
+    cliente['senha_usuario'] = input("Digite sua senha: ")
+    cliente['numero_telefone_usuario'] = input("Digite seu número de telefone (apenas números): ")
+    return cliente
+    
 
 def sem_conta_cliente():
-    cliente = {}
+    
     while True:
+        
         cpf_temp = input("Digite seu CPF (11 dígitos): ")
-        if not conn.buscar_cpf(cpf_temp):  # Supondo que buscar_cpf retorna False se o CPF já está cadastrado
+        limparTela()
+        if not buscarcpf(cpf_temp):  
             print("CPF já está cadastrado.")
+            limparTela()
             break
         else:
-            # Adiciona validação para ver se este CPF já não está cadastrado
-            cliente['cpf'] = cpf_temp
-            cliente['nome_usuario'] = input("Digite seu nome: ")
-            cliente['senha_usuario'] = input("Digite sua senha: ")
-            cliente['numero_telefone_usuario'] = input("Digite seu número de telefone (apenas números): ")
-
-            # Inserir cliente no banco de dados
-            query = """
-            INSERT INTO usuarios (cpf, nome_usuario, senha_usuario, numero_telefone_usuario)
-            VALUES (%(cpf)s, %(nome_usuario)s, %(senha_usuario)s, %(numero_telefone_usuario)s);
-            """
+            cliente = obterDadosCliente(cpf=cpf_temp)
             try:
-                conn._execute_query_with_dict(query, cliente)
-                usuario_autenticado = UsuarioAutenticado(cpf_temp, cliente['senha_usuario'])
-                return usuario_autenticado
+                conn.create_line(cliente, 'usuarios')
+                print("Cliente cadastrado com sucesso!")
+                time.sleep(2)
+                limparTela()
+                main()
                 break
             except psycopg2.errors as e:
                 print(f"Erro ao cadastrar cliente: {e}")
@@ -105,14 +145,15 @@ def sem_conta_cliente():
 
 def login_cliente():
     cpf = input("Digite seu CPF (apenas números): ")
+    limparTela()
 
     while True:
-        if (conn.buscar_cpf(cpf) is True):
+        if (buscarcpf(cpf) is True):
             print("Usuário não cadastrado.")
             break
         else:
             senha = input("Informe sua senha: ")
-            if (conn.validar_login_usuario == True):
+            if (conn.validar_login_usuario(cpf, senha) == True):
                 usuario_autenticado = UsuarioAutenticado(cpf, senha)
                 return usuario_autenticado
             else:
@@ -122,6 +163,7 @@ def login_cliente():
 
 def login_prestador():
     cnpj = input("Digite seu CNPJ (apenas números)" + '\nDigite :')
+    limparTela()
 
     while True:
         if (conn._buscar_cnpj(cnpj) is True):
@@ -154,35 +196,47 @@ def menu_prestador(prestador_autenticado):
 
 def tela_inicial(opcao):
 
-    subopcao = int(input("[1] Criar conta" + "\n[2] Já possuo conta" + "\nOpção: "))
+    subopcao = int(input("[1] Criar conta" + 
+                       "\n[2] Já possuo conta" + 
+                       "\nOpção: "))
 
     match subopcao:
         case 1:
             if (opcao == 1):
+                limparTela()
                 sem_conta_prestador()
             elif (opcao == 2):
+                limparTela()
                 sem_conta_cliente()
             else:
+                limparTela()
                 print("Opção inválida.")
         case 2:
             if (opcao == 1):
+                limparTela()
                 login_prestador()
             elif (opcao == 2):
+                limparTela()
                 login_cliente()
             else:
+                limparTela()
                 print("Opção inválida.")
 
 
 def main():
-    opcao = int(input("Você é prestador ou cliente?" + "\n[1] Prestador" + "\n[2] Cliente" + "\n"))
-    match opcao:
-        case 1:
-            os.system('cls') or None
-            tela_inicial(1)
-            menu_prestador()
+    
+        opcao = int(input("Você é prestador ou cliente?" + 
+                          "\n[1] Prestador" + 
+                          "\n[2] Cliente" + 
+                          "\nOpção: "))
+        match opcao:
+            case 1:
+                limparTela()
+                tela_inicial(1)
 
-        case 2:
-            tela_inicial(2)
+            case 2:
+                limparTela()
+                tela_inicial(2)
 
 
 main()

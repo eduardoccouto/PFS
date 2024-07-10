@@ -1,7 +1,7 @@
 import psycopg2 as _connector
 from dotenv import load_dotenv
 import os
-
+from limparTela import *
 
 load_dotenv()
 
@@ -13,8 +13,13 @@ class PostGreeDB:
         self._database = os.getenv("DB_NAME")
         self._host = os.getenv("DB_HOST")
         self._conn = self._getConnection()
-        self.criar_todas_as_tabelas()
+        print(self.statusServer())
+        limparTela()
 
+    def statusServer(self):
+        if self._getConnection is not None:
+            return '\nIniciando aplicação...' 
+        
     def _getConnection(self):
         return _connector.connect(
             user=self._user,
@@ -332,8 +337,7 @@ class PostGreeDB:
 
     #CRUD operations
     def create_line(self, attr: dict, table_name: str):
-        self._is_on_database(table_name)
-        key_list, placeholders = self._returning_key_list_and_placeholders(attr)
+        key_list, placeholders = self._retornar_lista_de_chaves_e_placeholders(attr)
         insertion_query = f"INSERT INTO {table_name} ({key_list}) VALUES ({placeholders})"
         
         try:
@@ -384,7 +388,7 @@ class PostGreeDB:
         return True
     
     def validar_login_prestador(self, cnpj, senha):
-        query = f"SELECT * FROM prestadores WHERE cnpj = '{cnpj}' AND senha = '{senha}"
+        query = f""" SELECT * FROM prestadores WHERE cnpj = '{cnpj}' AND senha_prestador = '{senha}'; """
         result = self._querying(query)
         if result:
             return True 
@@ -397,13 +401,13 @@ class PostGreeDB:
         return True
     
     def validar_login_usuario(self, cpf, senha):
-        query = f"SELECT * FROM prestadores WHERE cpf = '{cpf}' AND senha = '{senha}"
+        query = f""" SELECT * FROM usuarios WHERE cpf = '{cpf}' AND senha_usuario = '{senha}'; """
         result = self._querying(query)
         if result:
             return True  # Retorna o primeiro (e único) resultado
         return False
     
-    
+
 
         
 
