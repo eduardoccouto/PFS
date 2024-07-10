@@ -1,15 +1,15 @@
 import psycopg2
 from controller import *
-import os
 from user import UsuarioAutenticado
 from prestador import PrestadorAutenticado
 import time
 from limparTela import *
 
 if __name__ == "__main__":
+    
     try:
         conn = PostGreeDB()
-        print('Conexão bem sucedida')
+        print('Conexão bem sucedida!')
         time.sleep(2)
         limparTela()
         
@@ -17,65 +17,89 @@ if __name__ == "__main__":
         print('Não foi possivel estabelecer conexão ao banco de dados. '
               f'Erro: {err}')
 
+#retorna valores atribuidos na base de endereços do banco de dados
+def buscaCep(cep):
+    endereco = conn.buscar_endereco_por_cep(cep=cep)
+    marcadores = ('cep', 'logradouro', 'bairro', 'cidade')
+    valores = []
+    for dados in endereco:
+                valores.append(dict(zip(marcadores, dados)))        
+    dict_endereco = valores[0]
+    
+    return dict_endereco # retorna o endereco em um formato de dicionario 
+    
+    
+
+def buscarCnpj(cnpj):
+    return conn._buscar_cnpj(cnpj=cnpj)
+
+def listaTiposDeServicos():
+    return conn.mostrar_tipos()
+
+def cadastraTipo():
+
+    print("====================================")
+    listaTiposDeServicos()
+    print("====================================")
+    op_tipo = input("Informe o cod. do tipo de serviço: ")
+    limparTela()
+    result = conn.retornaTipo(op_tipo)
+    
+    return op_tipo, result
+    
+    
+def coletaDadosPrestador(opcaoTipo, resultado, cnpj):
+    
+    prestador = {}
+    prestador['cnpj'] = cnpj
+    prestador['id_tipo'] = opcaoTipo   
+    prestador['tipo_prestador'] = resultado
+    prestador['nome_prestador'] = input("Digite o nome do seu estabelecimento: ")
+    prestador['senha_prestador'] = input("Digite sua senha: ")
+    prestador['numero_telefone_prestador'] = input("Digite seu número de telefone (apenas números): ")
+    prestador['descricao'] = input("Digite a descrição (até 600 caracteres): ")
+    
+    return prestador
+ 
+def cadastraEndereco(prestador : dict, cep, endereco : dict):
+    prestador['cep'] = cep
+    prestador['logradouro'] = endereco['logradouro']
+    prestador['bairro'] = endereco['bairro']
+    prestador['cidade'] = endereco['cidade']
+    prestador['numero_endereco'] = input("Digite o número do endereço: ")
+    prestador['complemento'] = input("Digite o complemento do endereço: ")
+    
+    return prestador
+
 
 def sem_conta_prestador():
-    prestador = {}
+    
     cnpj_temp = input("Digite o CNPJ do prestador (14 dígitos): ")
     limparTela()
 
-    if (conn._buscar_cnpj(cnpj_temp) is False):
+    if (buscarCnpj(cnpj_temp) is False):
         print("CNPJ já está cadastrado.")
 
     else:
-        prestador['cnpj'] = cnpj_temp
-        print("Digite o tipo de serviço: ")
-        conn.mostrar_tipos() 
-        opcaoTipo = input("Opção: ")
-        limparTela()
-        resultado = conn.retornaTipo(opcaoTipo)
-
+        opcaoTipo, resultado = cadastraTipo()
+        
         if (resultado == False):
             print ("Opção inválida.")
         else:
-            prestador['id_tipo'] = opcaoTipo   
-            prestador['tipo_prestador'] = resultado
-            prestador['nome_prestador'] = input("Digite o nome do seu estabelecimento: ")
-            limparTela()
-            prestador['senha_prestador'] = input("Digite sua senha: ")
-            limparTela()
-            prestador['numero_telefone_prestador'] = input("Digite seu número de telefone (apenas números): ")
-            limparTela()
-            prestador['descricao'] = input("Digite a descrição (até 600 caracteres): ")
-            limparTela()
-
-            # Coleta e busca do CEP
-
+            prestador = coletaDadosPrestador(opcaoTipo=opcaoTipo, resultado= resultado, cnpj=cnpj_temp)
             cep = input("Digite o CEP: ")
-            endereco = conn.buscar_endereco_por_cep(cep)
+            endereco = buscaCep(cep=cep)
             limparTela()
-            
-            marcadores = ('cep', 'logradouro', 'bairro', 'cidade')
-            valores = []
-            for dados in endereco:
-                valores.append(dict(zip(marcadores, dados)))
-                
-            data_endereco = valores[0]
             
             if endereco:
-                prestador['cep'] = cep
-                prestador['logradouro'] = data_endereco['logradouro']
-                prestador['bairro'] = data_endereco['bairro']
-                prestador['cidade'] = data_endereco['cidade']
-                prestador['numero_endereco'] = input("Digite o número do endereço: ")
-                prestador['complemento'] = input("Digite o complemento do endereço: ")
-
+                prestador = cadastraEndereco(prestador, cep, endereco)
             else:
                 print("CEP não encontrado. Por favor, tente novamente.")
 
             try:
                 conn.create_line(prestador, 'prestadores')
                 print("Prestador cadastrado com sucesso!")
-            except Exception as e:
+            except psycopg2.errors as e:
                 print(f"Erro ao cadastrar prestador: {e}")
 
             return prestador
@@ -95,6 +119,7 @@ def obterDadosCliente(cpf):
 def sem_conta_cliente():
     
     while True:
+        
         cpf_temp = input("Digite seu CPF (11 dígitos): ")
         limparTela()
         if not buscarcpf(cpf_temp):  
@@ -184,7 +209,6 @@ def tela_inicial(opcao):
 
 def main():
     
-   
         opcao = int(input("Você é prestador ou cliente?" + 
                           "\n[1] Prestador" + 
                           "\n[2] Cliente" + 

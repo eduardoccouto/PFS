@@ -371,7 +371,7 @@ class PostGreeDB:
             return True  # Retorna o primeiro (e único) resultado
         return False
     
-    
+
 
         
 
