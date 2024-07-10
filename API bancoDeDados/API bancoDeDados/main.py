@@ -147,12 +147,12 @@ def login_cliente():
     limparTela()
 
     while True:
-        if (conn.buscar_cpf(cpf) is True):
+        if (buscarcpf(cpf) is True):
             print("Usuário não cadastrado.")
             break
         else:
             senha = input("Informe sua senha: ")
-            if (conn.validar_login_usuario == True):
+            if (conn.validar_login_usuario(cpf, senha) == True):
                 usuario_autenticado = UsuarioAutenticado(cpf, senha)
                 return usuario_autenticado
             else:

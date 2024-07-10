@@ -352,7 +352,7 @@ class PostGreeDB:
         return True
     
     def validar_login_prestador(self, cnpj, senha):
-        query = f"SELECT * FROM prestadores WHERE cnpj = '{cnpj}' AND senha = '{senha}"
+        query = f""" SELECT * FROM prestadores WHERE cnpj = '{cnpj}' AND senha_prestador = '{senha}'; """
         result = self._querying(query)
         if result:
             return True 
@@ -365,7 +365,7 @@ class PostGreeDB:
         return True
     
     def validar_login_usuario(self, cpf, senha):
-        query = f"SELECT * FROM prestadores WHERE cpf = '{cpf}' AND senha = '{senha}"
+        query = f""" SELECT * FROM usuarios WHERE cpf = '{cpf}' AND senha_usuario = '{senha}'; """
         result = self._querying(query)
         if result:
             return True  # Retorna o primeiro (e único) resultado
