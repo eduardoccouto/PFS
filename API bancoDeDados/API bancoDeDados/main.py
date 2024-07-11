@@ -4,6 +4,8 @@ from user import UsuarioAutenticado
 from prestador import PrestadorAutenticado
 import time
 from limparTela import *
+from datetime import datetime
+import pytz
 
 
 if __name__ == "__main__":
@@ -173,6 +175,7 @@ def login_prestador():
             senha = input("Informe sua senha: ")
             if (conn.validar_login_prestador == True):
                 prestador_autenticado = PrestadorAutenticado(cnpj, senha)
+
                 return prestador_autenticado
             else:
                 print("Senha incorreta. ")
@@ -192,6 +195,64 @@ def menu_prestador(prestador_autenticado):
             conn.visualizar_prestador(cnpj_atual)
             resultado = conn.visualizar_servicos_perfil(cnpj_atual)
             # prestador vai ver qual solicitaçãoes ele quer cancelar/realizar
+
+def menu_cliente(usuario_autenticado):
+    print("Seja bem-vindo(a) ao Serve Para Você!")
+    print("O que você deseja?")
+    op = int(input("[1] Fazer solicitação" + "\n[2] Procurar prestadores" + "\n[3] Meu perfil" +"\nOpção: "))
+    match op:
+        case 1:
+            solicitacao = {}
+            opcaoTipo, resultado = cadastraTipo()
+        
+            if (resultado == False):
+                print ("Opção inválida.")
+            else:
+                solicitacao['cpf_sol'] = usuario_autenticado.cpf
+                solicitacao['nome_usuario'] = conn.procuraNome(usuario_autenticado.cpf)
+                solicitacao['cnpj_sol'] = None
+                solicitacao['nome_prestador'] = None
+                solicitacao['data_horario'] =  datetime.now(pytz.UTC) 
+                solicitacao['id_tipo'] = opcaoTipo
+                solicitacao['tipo'] = resultado
+                solicitacao['status'] = "EM ABERTO"
+                try:
+                    conn.create_line(solicitacao, 'solicitacoes')
+                    print("Solicitação cadastrada!")
+                except psycopg2.errors as e:
+                    print(f"Erro ao cadastrar solicitação: {e}")
+        case 2:
+            print("Você pode filtrar por tipo de serviço e/ou localidade!")
+            opcaoTipo, resultado = cadastraTipo()
+        
+            if (resultado == False):
+                print ("Opção inválida.")
+            else:
+                cep = int(input("Qual CEP você deseja?" +"\nOpção: "))
+                endereco = buscaCep(cep=cep)
+                limparTela()
+            
+                if endereco:
+                    conn.retornarPrestadores(opcaoTipo, resultado)
+                    # fazer mais alguma coisa?
+                else:
+                    print("CEP não encontrado. Por favor, tente novamente.")
+        case 3: 
+            print("Meu perfil:")
+            print("Informações:")
+            conn.retornarUsuario(usuario_autenticado.cpf) # modificar para nbao aparecer a senha
+
+            print("Solicitações:")
+            conn.retornarSolicitacoesUsuario(usuario_autenticado.cpf)
+            print("O que você deseja?:")
+            op = int(input("[1] Modificar alguma solicitação" + "\n[2] Voltar ao menu inicial" +"\nOpção: "))
+            match op:
+                case 1:
+                    
+                case 2:
+                    menu_cliente(usuario_autenticado)
+
+                case 3:
 
 
 def tela_inicial(opcao):

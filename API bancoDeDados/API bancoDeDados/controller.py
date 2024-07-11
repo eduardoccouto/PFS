@@ -160,13 +160,13 @@ class PostGreeDB:
             create_table_query = '''
             CREATE TABLE IF NOT EXISTS solicitacoes (
                 id_solicitacao SERIAL PRIMARY KEY,
-                FOREIGN KEY (cpf_coment)
+                FOREIGN KEY (cpf_sol)
                     REFERENCES usuarios(cpf),
-                FOREIGN KEY (nome_usuario_coment)
+                FOREIGN KEY (nome_usuario_sol)
                     REFERENCES usuarios(nome_usuario),
-                FOREIGN KEY (cnpj_coment)
+                FOREIGN KEY (cnpj_sol)
                     REFERENCES prestadores(cnpj),
-                FOREIGN KEY (nome_prestador_coment)
+                FOREIGN KEY (nome_prestador_sol)
                     REFERENCES prestadores(nome_prestador),
                 data_horario TIMESTAMPTZ NOT NULL,
                 FOREIGN KEY (id_tipo)
@@ -207,6 +207,44 @@ class PostGreeDB:
             print(f'- {table[0]}')  # Access the first element of the tuple
         return dict_of_tables
     
+    def procuraNome(self, cpf):
+        cursor = self._conn.cursor()
+        cursor.execute(f"SELECT nome_usuario FROM usuarios WHERE cpf={cpf};")
+        nome = cursor.fetchall()
+        return nome
+
+    def retornarPrestadores(self, id_tipo = None, cep = None):
+        cursor = self._conn.cursor()
+        cursor.execute('''SELECT nome_prestador, numero_telefone_prestador, cnpj, tipo, cep, logradouro, bairro, 
+                       cidade, descricao FROM prestadores WHERE id_tipo = {id_tipo} AND cep = {cep};''')
+        rows = cursor.fetchall()
+
+        # Formate e imprima os resultados
+        for row in rows:
+            print(f"[{row[0]}] {row[1]}")
+
+        cursor.close()
+
+    def retornarUsuario(self, cpf):
+        cursor = self._conn.cursor()
+        cursor.execute('''SELECT * FROM usuarios WHERE cpf = {cpf};''')
+        rows = cursor.fetchall()
+
+        for row in rows:
+            print(f"[{row[0]}] {row[1]}")
+
+        cursor.close()
+    
+    def retornarSolicitacoesUsuario(self, cpf):
+        cursor = self._conn.cursor()
+        cursor.execute('''SELECT * FROM solicitacoes WHERE cpf_sol = {cpf};''')
+        rows = cursor.fetchall()
+
+        for row in rows:
+            print(f"[{row[0]}] {row[1]}")
+
+        cursor.close()
+
     def mostrar_tipos(self):
         cursor = self._conn.cursor()
         cursor.execute("SELECT * FROM tipo;")
