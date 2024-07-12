@@ -10,7 +10,7 @@ if __name__ == "__main__":
     
     try:
         conn = PostGreeDB()
-        print('Conexão bem sucedida!')
+        print('Conexão bem sucedida! \u2665')
         time.sleep(2)
         limparTela()
         
@@ -155,7 +155,7 @@ def login_cliente():
             senha = input("Informe sua senha: ")
             if (conn.validar_login_usuario(cpf, senha) == True):
                 usuario_autenticado = UsuarioAutenticado(cpf, senha)
-                return usuario_autenticado
+                return executeQuerySelectServices(usuario_autenticado)
             else:
                 print("Senha incorreta. ")
                 return None
@@ -180,6 +180,7 @@ def login_prestador():
 
 def menu_prestador(prestador_autenticado):
     print("Seja bem-vindo(a) ao Serve Para Você!")
+    
     print("O que você deseja?")
     op = int(input("[1] Visualizar solicitações de serviço" + "\n[2] Meu perfil" + "\nOpção: "))
     cnpj_atual = prestador_autenticado.cnpj
@@ -188,10 +189,62 @@ def menu_prestador(prestador_autenticado):
             tipo_atual = conn.retornaTipoCNPJ(cnpj_atual)
             conn.visualizar_solicitacoes(tipo_atual)
             # escrever aqui o menu que ira pedir qual solicitação ele quer agendar
+            #thais
         case 2:
             conn.visualizar_prestador(cnpj_atual)
             resultado = conn.visualizar_servicos_perfil(cnpj_atual)
             # prestador vai ver qual solicitaçãoes ele quer cancelar/realizar
+            #thais """ PRECISO ENTENDER O CONTXTO SOU BURRO
+            
+
+def executeQuerySelectServices(usuario_autenticado : UsuarioAutenticado):
+    referencia, marcador = chooseOpTelaUsuario(usuario_autenticado)
+    query = f""" select nome_prestador, tipo_servico, descricao from prestadores where {marcador} = {referencia}"""
+    result_from_query = conn._querying(query)
+    return result_from_query
+
+
+
+
+def chooseOpTelaUsuario(usuario_autenticado : UsuarioAutenticado):
+    print(telaUsuario(usuario_autenticado))
+    op = int(input("Opção"))
+    if op == 1:
+        print(exibirMenuBuscaServicos())
+        opcaoMenuBuscaSerivicos = int(input("Digite: "))
+        
+        if opcaoMenuBuscaSerivicos == 1:
+            marcador = 'id_tipo'
+            listaTiposDeServicos()
+            id_tipo_de_servico = input("Digite o cód. do serviço: ")
+            return id_tipo_de_servico, marcador
+        
+        if opcaoMenuBuscaSerivicos == 2:
+            marcador = 'cep'
+            cep_busca_servico = input("informe o CEP: ")
+            return cep_busca_servico, marcador
+
+
+def telaUsuario(usuario_autenticado : UsuarioAutenticado):
+    
+     return f""" Bem vindo ao Serve para Você! 
+          Usuário logado: {usuario_autenticado.cpf}
+          
+          \n[1. Pesquisar serviços disponíveis]
+          \n[2. Ver meus serviços contrados]
+          \n[3. Meu perfil]
+          \n[3. Sair]
+          
+          """
+
+def exibirMenuBuscaServicos():
+    
+   return """ [1. Pesqusar por tipo de serviço]
+            \n[2. Pesquisar por CEP  """
+                     
+                       
+
+    
 
 
 def tela_inicial(opcao):
