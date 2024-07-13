@@ -2,6 +2,7 @@ import psycopg2 as _connector
 from dotenv import load_dotenv
 import os
 from limparTela import *
+import psycopg2
 
 load_dotenv()
 
@@ -47,7 +48,7 @@ class PostGreeDB:
             print('Tabela criado com sucesso!')
         except TypeError as err:
             print(f'Não foi possivel criar a tabela. \nMessage: {err}')
-
+    
     def _createTableTipo(self):
         cursor = self._conn.cursor()
 
@@ -162,18 +163,27 @@ class PostGreeDB:
                 id_solicitacao SERIAL PRIMARY KEY,
                 FOREIGN KEY (cpf_sol)
                     REFERENCES usuarios(cpf),
-                FOREIGN KEY (nome_usuario_sol)
-                    REFERENCES usuarios(nome_usuario),
+                nome_usuario_sol varchar(80) NOT NULL,
+                
                 FOREIGN KEY (cnpj_sol)
                     REFERENCES prestadores(cnpj),
-                FOREIGN KEY (nome_prestador_sol)
-                    REFERENCES prestadores(nome_prestador),
+                
+                nome_prestador_sol varchar(80) NOT NULL,     
+
                 data_horario TIMESTAMPTZ NOT NULL,
                 FOREIGN KEY (id_tipo)
                     REFERENCES tipo(id_tipo),
+                
+                tipo varchar(100)),
+                    
+                status varchar(50) NOT NULL,
+
+                FOREIGN KEY (nome_usuario_sol)
+                    REFERENCES usuarios(nome_usuario),
+                FOREIGN KEY (nome_prestador_sol)
+                    REFERENCES prestadores(nome_prestador),
                 FOREIGN KEY (tipo)
-                    REFERENCES tipo(tipo),
-                status varchar(50) NOT NULL
+                    REFERENCES tipo(tipo)
             )
             '''
             
@@ -207,9 +217,46 @@ class PostGreeDB:
             print(f'- {table[0]}')  # Access the first element of the tuple
         return dict_of_tables
     
+
+    def verificaSolicitacao(self, id, cpf):
+        cursor = self._conn.cursor()
+        query = (f"SELECT status FROM solicitacoes WHERE id_solicitacao={id} AND cpf_sol='{cpf}'")
+        cursor.execute(query)
+        resultado = cursor.fetchall
+
+
+        if resultado and resultado != "REALIZADA":
+            return resultado[0]
+        else:
+            return False
+
+    def mudarStatus(self, id, novoStatus):
+        try:
+            cursor = self._conn.cursor()
+            query = "UPDATE solicitacoes SET status = %s WHERE id_solicitacao = %s"
+            cursor.execute(query, (novoStatus, id))
+            self._conn.commit()
+            print("Status da solicitação atualizado com sucesso!")
+        except psycopg2.Error as e:
+            print(f"Erro ao atualizar o status da solicitação: {e}")
+        finally:
+            cursor.close()
+
+    def verificaSolicitacaoPrestador(self, id):
+        cursor = self._conn.cursor()
+        query = (f"SELECT status FROM solicitacoes WHERE id_solicitacao={id}'")
+        cursor.execute(query)
+        resultado = cursor.fetchall
+
+
+        if resultado and resultado != "REALIZADA":
+            return resultado[0]
+        else:
+            return False
+        
     def procuraNome(self, cpf):
         cursor = self._conn.cursor()
-        cursor.execute(f"SELECT nome_usuario FROM usuarios WHERE cpf={cpf};")
+        cursor.execute(f"SELECT nome_usuario FROM usuarios WHERE cpf='{cpf}';")
         nome = cursor.fetchall()
         return nome
 
@@ -227,17 +274,22 @@ class PostGreeDB:
 
     def retornarUsuario(self, cpf):
         cursor = self._conn.cursor()
-        cursor.execute('''SELECT * FROM usuarios WHERE cpf = {cpf};''')
-        rows = cursor.fetchall()
+        try:
+            cursor.execute("SELECT * FROM usuarios WHERE cpf = %s;", (cpf,))
+            rows = cursor.fetchall()
 
-        for row in rows:
-            print(f"[{row[0]}] {row[1]}")
+            for row in rows:
+                print(f"CPF: {row[0]}" + f"\nNome: {row[1]}" + f"\nTelefone: {row[2]}")  
 
-        cursor.close()
+        except psycopg2.Error as e:
+            print(f"Erro ao retornar informações do usuário: {e}")
+
+        finally:
+            cursor.close()
     
     def retornarSolicitacoesUsuario(self, cpf):
         cursor = self._conn.cursor()
-        cursor.execute('''SELECT * FROM solicitacoes WHERE cpf_sol = {cpf};''')
+        cursor.execute('''SELECT * FROM solicitacoes WHERE cpf_sol = '{cpf}';''')
         rows = cursor.fetchall()
 
         for row in rows:
@@ -290,6 +342,16 @@ class PostGreeDB:
 
     def get_database_name(self):
         return self._database
+
+    def deleta_instance(self, table_name, condition):
+        try:
+            cursor = self._conn.cursor()
+            delete_query = f"DELETE FROM {table_name} WHERE {condition}"
+            cursor.execute(delete_query)
+            self._conn.commit()
+            print("Solicitação cancelada com sucesso!")
+        except psycopg2.Error as e:
+            print(f"Erro ao cancelar a solicitação: {e}")
 
     # método para adicionar algo, por exempl, então precisa do dicionáio
     def _execute_query_with_dict(self, query: str, attr: dict):

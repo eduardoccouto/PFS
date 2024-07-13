@@ -49,8 +49,64 @@ def cadastraTipo():
     result = conn.retornaTipo(op_tipo)
     
     return op_tipo, result
+
+# CLIENTE ---------------------------------------------------------------------------------------------------------
+def buscarcpf(cpf):
+    return conn.buscar_cpf(cpf)
+
+def obterDadosCliente(cpf):
+    cliente = {}
+    cliente['cpf'] = cpf
+    cliente['nome_usuario'] = input("Digite seu nome: ")
+    cliente['senha_usuario'] = input("Digite sua senha: ")
+    cliente['numero_telefone_usuario'] = input("Digite seu número de telefone (apenas números): ")
+    return cliente
     
+
+def sem_conta_cliente():
     
+    while True:
+        
+        cpf_temp = input("Digite seu CPF (11 dígitos): ")
+        limparTela()
+        if not buscarcpf(cpf_temp):  
+            print("CPF já está cadastrado.")
+            limparTela()
+            break
+        else:
+            cliente = obterDadosCliente(cpf=cpf_temp)
+            try:
+                conn.create_line(cliente, 'usuarios')
+                print("Cliente cadastrado com sucesso!")
+                time.sleep(2)
+                limparTela()
+                main()
+                break
+            except psycopg2.errors as e:
+                print(f"Erro ao cadastrar cliente: {e}")
+                break
+
+    return cliente
+
+
+def login_cliente():
+    cpf = input("Digite seu CPF (apenas números): ")
+
+    while True:
+        if (buscarcpf(cpf) is True):
+            print("Usuário não cadastrado.")
+            break
+        else:
+            senha = input("Informe sua senha: ")
+            if (conn.validar_login_usuario(cpf, senha) == True):
+                usuario_autenticado = UsuarioAutenticado(cpf, senha)
+                return menu_cliente(usuario_autenticado)
+            #executeQuerySelectServices(usuario_autenticado)
+            else:
+                print("Senha incorreta. ")
+                return None
+
+# PRESTADOR -------------------------------------------------------------------------------------------------------
 def coletaDadosPrestador(opcaoTipo, resultado, cnpj):
     
     prestador = {}
@@ -106,62 +162,7 @@ def sem_conta_prestador():
                 print(f"Erro ao cadastrar prestador: {e}")
 
             return prestador
-        
-def buscarcpf(cpf):
-    return conn.buscar_cpf(cpf)
-
-def obterDadosCliente(cpf):
-    cliente = {}
-    cliente['cpf'] = cpf
-    cliente['nome_usuario'] = input("Digite seu nome: ")
-    cliente['senha_usuario'] = input("Digite sua senha: ")
-    cliente['numero_telefone_usuario'] = input("Digite seu número de telefone (apenas números): ")
-    return cliente
     
-
-def sem_conta_cliente():
-    
-    while True:
-        
-        cpf_temp = input("Digite seu CPF (11 dígitos): ")
-        limparTela()
-        if not buscarcpf(cpf_temp):  
-            print("CPF já está cadastrado.")
-            limparTela()
-            break
-        else:
-            cliente = obterDadosCliente(cpf=cpf_temp)
-            try:
-                conn.create_line(cliente, 'usuarios')
-                print("Cliente cadastrado com sucesso!")
-                time.sleep(2)
-                limparTela()
-                main()
-                break
-            except psycopg2.errors as e:
-                print(f"Erro ao cadastrar cliente: {e}")
-                break
-
-    return cliente
-
-
-def login_cliente():
-    cpf = input("Digite seu CPF (apenas números): ")
-    limparTela()
-
-    while True:
-        if (buscarcpf(cpf) is True):
-            print("Usuário não cadastrado.")
-            break
-        else:
-            senha = input("Informe sua senha: ")
-            if (conn.validar_login_usuario(cpf, senha) == True):
-                usuario_autenticado = UsuarioAutenticado(cpf, senha)
-                return executeQuerySelectServices(usuario_autenticado)
-            else:
-                print("Senha incorreta. ")
-                return None
-
 
 def login_prestador():
     cnpj = input("Digite seu CNPJ (apenas números)" + '\nDigite :')
@@ -181,6 +182,19 @@ def login_prestador():
                 print("Senha incorreta. ")
                 return None
 
+def modificar_solicitacao(prestador_autenticado):
+    print("[1. Agendar serviço]" + "\n[2. Voltar ao menu inicial]")
+    op = int(input("Opção: "))
+
+    match op:
+        case 1:
+            sol = int(input("Opção: "))
+            status = conn.verificaSolicitacaoPrestador(sol)
+            if status:
+                conn.mudarStatus(sol, "AGENDADO")   
+        case 2:
+            menu_prestador(prestador_autenticado)
+
 def menu_prestador(prestador_autenticado):
     print("Seja bem-vindo(a) ao Serve Para Você!")
     
@@ -191,29 +205,27 @@ def menu_prestador(prestador_autenticado):
         case 1:
             tipo_atual = conn.retornaTipoCNPJ(cnpj_atual)
             conn.visualizar_solicitacoes(tipo_atual)
-            # escrever aqui o menu que ira pedir qual solicitação ele quer agendar
-            #thais
+            modificar_solicitacao(prestador_autenticado)
         case 2:
+            print("Meu perfil: ")
             conn.visualizar_prestador(cnpj_atual)
+            print("Solicitações: ")
             resultado = conn.visualizar_servicos_perfil(cnpj_atual)
             # prestador vai ver qual solicitaçãoes ele quer cancelar/realizar
             #thais """ PRECISO ENTENDER O CONTXTO SOU BURRO
             
 
 def executeQuerySelectServices(usuario_autenticado : UsuarioAutenticado):
-    referencia, marcador = chooseOpTelaUsuario(usuario_autenticado)
+    referencia, marcador = submenuBuscaPrestadores(usuario_autenticado)
     query = f""" select nome_prestador, tipo_servico, descricao from prestadores where {marcador} = {referencia}"""
     result_from_query = conn._querying(query)
     return result_from_query
 
-
-
-
-def chooseOpTelaUsuario(usuario_autenticado : UsuarioAutenticado):
+def submenuBuscaPrestadores(usuario_autenticado : UsuarioAutenticado):
     print(telaUsuario(usuario_autenticado))
     op = int(input("Opção"))
     if op == 1:
-        print(exibirMenuBuscaServicos())
+        print(submenuBuscaServicos())
         opcaoMenuBuscaSerivicos = int(input("Digite: "))
         
         if opcaoMenuBuscaSerivicos == 1:
@@ -229,67 +241,54 @@ def chooseOpTelaUsuario(usuario_autenticado : UsuarioAutenticado):
 
 
 def telaUsuario(usuario_autenticado : UsuarioAutenticado):
-    
-     return f""" Bem vindo ao Serve para Você! 
-          Usuário logado: {usuario_autenticado.cpf}
+    print(f"""Bem-vindo(a) ao Serve para Você! 
+        Usuário logado: {usuario_autenticado.cpf}
+          \nO que você deseja?
+          \n1 | [Fazer solicitação]
+2 | [Pesquisar serviços]
+3 | [Meu perfil]
+4 | [Sair]
           
-          \n[1. Pesquisar serviços disponíveis]
-          \n[2. Ver meus serviços contrados]
-          \n[3. Meu perfil]
-          \n[3. Sair]
-          
-          """
+          """)
+    op = int(input("Opção: "))
+    return op 
 
-def exibirMenuBuscaServicos():
+def submenuSolicitacao(usuario_autenticado : UsuarioAutenticado):
+    solicitacao = {}
+    opcaoTipo, resultado = cadastraTipo()
+
+    if (resultado == False):
+        print ("Opção inválida.")
+    else:
+        solicitacao['cpf_sol'] = usuario_autenticado.cpf
+        solicitacao['nome_usuario_sol'] = conn.procuraNome(usuario_autenticado.cpf)
+        solicitacao['cnpj_sol'] = None
+        solicitacao['nome_prestador_sol'] = None
+        solicitacao['data_horario'] =  datetime.now(pytz.UTC) 
+        solicitacao['id_tipo'] = opcaoTipo
+        solicitacao['tipo'] = resultado
+        solicitacao['status'] = "EM ABERTO"
+        try:
+            conn.create_line(solicitacao, 'solicitacoes')
+            print("Solicitação cadastrada!")
+        except psycopg2.Error as e:
+            print(f"Erro ao cadastrar solicitação: {e}")
+
+def submenuBuscaServicos():
     
    return """ [1. Pesqusar por tipo de serviço]
             \n[2. Pesquisar por CEP  """
-                     
-                       
 
-    
 
-def menu_cliente(usuario_autenticado):
-    print("Seja bem-vindo(a) ao Serve Para Você!")
-    print("O que você deseja?")
-    op = int(input("[1] Fazer solicitação" + "\n[2] Procurar prestadores" + "\n[3] Meu perfil" +"\nOpção: "))
+def menu_cliente(usuario_autenticado : UsuarioAutenticado):
+    op = telaUsuario(usuario_autenticado)
     match op:
         case 1:
-            solicitacao = {}
-            opcaoTipo, resultado = cadastraTipo()
-        
-            if (resultado == False):
-                print ("Opção inválida.")
-            else:
-                solicitacao['cpf_sol'] = usuario_autenticado.cpf
-                solicitacao['nome_usuario'] = conn.procuraNome(usuario_autenticado.cpf)
-                solicitacao['cnpj_sol'] = None
-                solicitacao['nome_prestador'] = None
-                solicitacao['data_horario'] =  datetime.now(pytz.UTC) 
-                solicitacao['id_tipo'] = opcaoTipo
-                solicitacao['tipo'] = resultado
-                solicitacao['status'] = "EM ABERTO"
-                try:
-                    conn.create_line(solicitacao, 'solicitacoes')
-                    print("Solicitação cadastrada!")
-                except psycopg2.errors as e:
-                    print(f"Erro ao cadastrar solicitação: {e}")
+            submenuSolicitacao(usuario_autenticado)
+
         case 2:
-            print("Você pode filtrar por tipo de serviço e/ou localidade!")
-            opcaoTipo, resultado = cadastraTipo()
-        
-            if (resultado == False):
-                print ("Opção inválida.")
-            else:
-                cep = int(input("Qual CEP você deseja?" +"\nOpção: "))
-                endereco = buscaCep(cep=cep)
-                limparTela()
-            
-                if endereco:
-                    conn.retornarPrestadores(opcaoTipo, resultado)
-                    # fazer mais alguma coisa?
-                else:
-                    print("CEP não encontrado. Por favor, tente novamente.")
+            executeQuerySelectServices()
+
         case 3: 
             print("Meu perfil:")
             print("Informações:")
@@ -298,15 +297,20 @@ def menu_cliente(usuario_autenticado):
             print("Solicitações:")
             conn.retornarSolicitacoesUsuario(usuario_autenticado.cpf)
             print("O que você deseja?:")
-            op = int(input("[1] Modificar alguma solicitação" + "\n[2] Voltar ao menu inicial" +"\nOpção: "))
+            op = int(input("[1] Cancelar alguma solicitação" + "\n[2] Voltar ao menu inicial" +  "\n[3] Sair" + "\nOpção: "))
             match op:
                 case 1:
-                    
+                    opSol = int(input("Qual solicitação você deseja cancelar (ID)?"))
+                    if conn.verificaSolicitacao(opSol, usuario_autenticado.cpf):
+                        conn.deleta_instance('solicitacoes', f'id_solicitacao={opSol}')
+                    else:
+                        print("Essa solicitação não existe ou já está realizada.")
+                        menu_cliente(usuario_autenticado)
                 case 2:
                     menu_cliente(usuario_autenticado)
 
                 case 3:
-
+                    main()
 
 def tela_inicial(opcao):
 
