@@ -130,7 +130,7 @@ def cadastraEndereco(prestador : dict, cep, endereco : dict):
     prestador['complemento'] = input("Digite o complemento do endereço: ")
     
     return prestador
-
+#TESTE
 
 def sem_conta_prestador():
     
