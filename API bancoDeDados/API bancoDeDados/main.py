@@ -182,20 +182,22 @@ def login_prestador():
                 print("Senha incorreta. ")
                 main()
 
-def modificar_solicitacao(prestador_autenticado):
+
+def modificar_solicitacao(prestador_autenticado : PrestadorAutenticado):
     print("[1. Agendar serviço]" + "\n[2. Voltar ao menu inicial]")
     op = int(input("Opção: "))
 
     match op:
         case 1:
-            sol = int(input("Digite o ID da solicitação: "))
-            status = conn.verificaSolicitacaoPrestador(sol, prestador_autenticado.cnpj)
+            sol = input("Digite o ID da solicitação: ")
+            status = conn.verificaSolicitacaoPrestador(sol)
             if status:
                 conn.mudarStatus(sol, "AGENDADO")   
+                
         case 2:
             menu_prestador(prestador_autenticado)
 
-def menu_prestador(prestador_autenticado):
+def menu_prestador(prestador_autenticado: PrestadorAutenticado):
     limparTela()
     print("Seja bem-vindo(a) ao Serve Para Você!")
     
@@ -204,9 +206,10 @@ def menu_prestador(prestador_autenticado):
     cnpj_atual = prestador_autenticado.cnpj
     match op:
         case 1:
-            tipo_atual = conn.retornaTipoCNPJ(cnpj_atual)
-            conn.visualizar_solicitacoes(tipo_atual)
-            modificar_solicitacao(prestador_autenticado)
+            tipo_atual = conn.retornaTipoCNPJ(cnpj_atual) #
+            gameOfThrones = tipo_atual[0] #
+            conn.visualizar_solicitacoes(gameOfThrones) # 
+            modificar_solicitacao(prestador_autenticado)   
         case 2:
             print("╔════════════════════════════════╗")
             print("║          Meu Perfil            ║")

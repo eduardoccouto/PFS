@@ -214,12 +214,13 @@ class PostGreeDB:
             print(f'- {table[0]}')  # Access the first element of the tuple
         return dict_of_tables
     
-    def verificaSolicitacaoPrestador(self, id_solicitacao, cnpj):
+    def verificaSolicitacaoPrestador(self, id_solicitacao):
         cursor = self._conn.cursor()
         try:
-            cursor.execute('''SELECT status FROM solicitacoes WHERE id_solicitacao = %s AND cnpj_sol = %s;''', (id_solicitacao, cnpj))
+            cursor.execute(f""" SELECT status FROM solicitacoes WHERE id_solicitacao = {id_solicitacao}; """)
             resultado = cursor.fetchone()
 
+            
             if resultado is not None and resultado[0] != "REALIZADA":
                 return resultado[0]
             else:
@@ -485,7 +486,7 @@ class PostGreeDB:
         cursor = self._conn.cursor()
         try:
             # Use parâmetros para evitar SQL injection
-            cursor.execute('''SELECT * FROM solicitacoes WHERE tipo = %s;''', (tipo,))
+            cursor.execute(f"""SELECT * FROM solicitacoes WHERE tipo = '{tipo}'; """)
             rows = cursor.fetchall()
 
             if rows:
