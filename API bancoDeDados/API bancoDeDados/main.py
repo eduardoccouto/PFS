@@ -1,3 +1,4 @@
+import pprint
 import psycopg2
 from controller import *
 from user import UsuarioAutenticado
@@ -215,43 +216,95 @@ def menu_prestador(prestador_autenticado):
             #thais """ PRECISO ENTENDER O CONTXTO SOU BURRO
             
 
-def executeQuerySelectServices(usuario_autenticado : UsuarioAutenticado):
-    referencia, marcador = submenuBuscaPrestadores(usuario_autenticado)
-    query = f""" select nome_prestador, tipo_servico, descricao from prestadores where {marcador} = {referencia}"""
+
+
+def submenuBuscaPrestadores():
+    
+    print(submenuBuscaServicos())
+    opcaoMenuBuscaSerivicos = int(input("Digite: "))
+    
+    if opcaoMenuBuscaSerivicos == 1:
+        marcador_tipo = 'id_tipo'
+        listaTiposDeServicos()
+        id_tipo_de_servico = input("Digite o cód. do serviço: ")
+        return id_tipo_de_servico, marcador_tipo
+    
+    elif opcaoMenuBuscaSerivicos == 2:
+        marcador_cep = 'cep'
+        cep_busca_servico = input("informe o CEP: ")
+        return cep_busca_servico, marcador_cep
+        
+    return None, None
+
+def telaUsuario(usuario_autenticado : UsuarioAutenticado):
+    print(f"""
+Bem-vindo(a) ao Serve para Você! 
+Usuário logado: {usuario_autenticado.cpf}
+O que você deseja?
+
+1 | [Fazer solicitação]
+2 | [Pesquisar serviços]
+3 | [Meu perfil]
+4 | [Sair] 
+""")
+          
+    op = int(input("Opção: "))
+    return op 
+
+def menu_cliente(usuario_autenticado : UsuarioAutenticado):
+    op = telaUsuario(usuario_autenticado)
+    match op:
+        case 1:
+            submenuSolicitacao(usuario_autenticado)
+
+        case 2:
+            pprint.pprint(formataSaidaServicosDisponiveis())
+
+        case 3: 
+            print("Meu perfil:")
+            print("Informações:")
+            conn.retornarUsuario(usuario_autenticado.cpf) # modificar para nbao aparecer a senha
+
+            print("Solicitações:")
+            conn.retornarSolicitacoesUsuario(usuario_autenticado.cpf)
+            print("O que você deseja?:")
+            op = int(input("[1] Cancelar alguma solicitação" + "\n[2] Voltar ao menu inicial" +  "\n[3] Sair" + "\nOpção: "))
+            match op:
+                case 1:
+                    opSol = int(input("Qual solicitação você deseja cancelar (ID)?"))
+                    if conn.verificaSolicitacao(opSol, usuario_autenticado.cpf):
+                        conn.deleta_instance('solicitacoes', f'id_solicitacao={opSol}')
+                    else:
+                        print("Essa solicitação não existe ou já está realizada.")
+                        menu_cliente(usuario_autenticado)
+                case 2:
+                    menu_cliente(usuario_autenticado)
+
+                case 3:
+                    main()
+
+def executeQuerySelectServices():
+    desmpacotando = submenuBuscaPrestadores()
+    referencia, marcador = desmpacotando
+    query = f""" select nome_prestador, tipo_prestador, descricao from prestadores where {marcador} = '{referencia}'; """
     result_from_query = conn._querying(query)
     return result_from_query
 
-def submenuBuscaPrestadores(usuario_autenticado : UsuarioAutenticado):
-    print(telaUsuario(usuario_autenticado))
-    op = int(input("Opção"))
-    if op == 1:
-        print(submenuBuscaServicos())
-        opcaoMenuBuscaSerivicos = int(input("Digite: "))
-        
-        if opcaoMenuBuscaSerivicos == 1:
-            marcador = 'id_tipo'
-            listaTiposDeServicos()
-            id_tipo_de_servico = input("Digite o cód. do serviço: ")
-            return id_tipo_de_servico, marcador
-        
-        if opcaoMenuBuscaSerivicos == 2:
-            marcador = 'cep'
-            cep_busca_servico = input("informe o CEP: ")
-            return cep_busca_servico, marcador
 
 
-def telaUsuario(usuario_autenticado : UsuarioAutenticado):
-    print(f"""Bem-vindo(a) ao Serve para Você! 
-        Usuário logado: {usuario_autenticado.cpf}
-          \nO que você deseja?
-          \n1 | [Fazer solicitação]
-2 | [Pesquisar serviços]
-3 | [Meu perfil]
-4 | [Sair]
-          
-          """)
-    op = int(input("Opção: "))
-    return op 
+def formataSaidaServicosDisponiveis():
+
+    servicos = executeQuerySelectServices()
+    marcadores = ('Nome do Prestador', 'Tipo de Serviço', 'Descrição do Serviço')
+    valores = []
+    for dados in servicos:
+                valores.append(dict(zip(marcadores, dados)))        
+    dict_servicos = valores[0]
+    
+    return dict_servicos  #MEU ESSE NEGOCIO AQUI RETORNA UM DICIOINARIO VOU ME M#####3
+
+
+
 
 def submenuSolicitacao(usuario_autenticado : UsuarioAutenticado):
     solicitacao = {}
@@ -276,41 +329,14 @@ def submenuSolicitacao(usuario_autenticado : UsuarioAutenticado):
 
 def submenuBuscaServicos():
     
-   return """ [1. Pesqusar por tipo de serviço]
-            \n[2. Pesquisar por CEP  """
+   return """ 
+[1. Pesqusar por tipo de serviço]
+[2. Pesquisar por CEP  
+"""
 
 
-def menu_cliente(usuario_autenticado : UsuarioAutenticado):
-    op = telaUsuario(usuario_autenticado)
-    match op:
-        case 1:
-            submenuSolicitacao(usuario_autenticado)
 
-        case 2:
-            executeQuerySelectServices()
 
-        case 3: 
-            print("Meu perfil:")
-            print("Informações:")
-            conn.retornarUsuario(usuario_autenticado.cpf) # modificar para nbao aparecer a senha
-
-            print("Solicitações:")
-            conn.retornarSolicitacoesUsuario(usuario_autenticado.cpf)
-            print("O que você deseja?:")
-            op = int(input("[1] Cancelar alguma solicitação" + "\n[2] Voltar ao menu inicial" +  "\n[3] Sair" + "\nOpção: "))
-            match op:
-                case 1:
-                    opSol = int(input("Qual solicitação você deseja cancelar (ID)?"))
-                    if conn.verificaSolicitacao(opSol, usuario_autenticado.cpf):
-                        conn.deleta_instance('solicitacoes', f'id_solicitacao={opSol}')
-                    else:
-                        print("Essa solicitação não existe ou já está realizada.")
-                        menu_cliente(usuario_autenticado)
-                case 2:
-                    menu_cliente(usuario_autenticado)
-
-                case 3:
-                    main()
 
 def tela_inicial(opcao):
 

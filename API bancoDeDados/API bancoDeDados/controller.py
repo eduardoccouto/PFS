@@ -415,6 +415,8 @@ class PostGreeDB:
 
         return result
     
+    
+    
     # acredito que isso seja tipo um toString ner
     def _retornar_lista_de_chaves_e_placeholders(self, attr: dict):
         lista_de_chaves = ', '.join([chave for chave in attr.keys()])
