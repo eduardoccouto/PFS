@@ -74,26 +74,27 @@ class PostGreeDB:
                 """ 
                     CREATE TABLE IF NOT EXISTS prestadores (
 
-                    cnpj char(14) PRIMARY KEY NOT NULL,
-                    id_tipo INTEGER not null,
-                    tipo varchar(100) NOT NULL,
-                    cep CHAR (8),
+                    cnpj CHAR(14) PRIMARY KEY NOT NULL,
+                    id_tipo INTEGER NOT NULL,
+                    cep CHAR(8),
                     logradouro VARCHAR(255) NOT NULL,
                     bairro VARCHAR(100) NOT NULL,
                     cidade VARCHAR(100) NOT NULL,
-                    tipo_prestador VARCHAR(100) not null,
-                    nome_prestador varchar(80) NOT NULL,
-                    senha_prestador varchar(30) NOT NULL,
-                    numero_telefone_prestador char(11) NOT NULL,
-                    numero_endereco varchar(20) NOT NULL,
-                    complemento varchar(255) NOT NULL,
+                    tipo_prestador VARCHAR(100) NOT NULL,
+                    nome_prestador VARCHAR(80) NOT NULL,
+                    senha_prestador VARCHAR(30) NOT NULL,
+                    numero_telefone_prestador CHAR(11) NOT NULL,
+                    numero_endereco VARCHAR(20) NOT NULL,
+                    complemento VARCHAR(255) NOT NULL,
                     descricao TEXT NOT NULL,
                     
                     FOREIGN KEY (id_tipo) 
-                         REFERENCES tipo(id_tipo),
-
+                        REFERENCES tipo(id_tipo),
+                    
                     FOREIGN KEY (cep)
                         REFERENCES enderecos(cep)
+                    
+                
                     );
                 """
             )
@@ -161,30 +162,25 @@ class PostGreeDB:
             create_table_query = '''
             CREATE TABLE IF NOT EXISTS solicitacoes (
                 id_solicitacao SERIAL PRIMARY KEY,
-                FOREIGN KEY (cpf_sol)
-                    REFERENCES usuarios(cpf),
-                nome_usuario_sol varchar(80) NOT NULL,
-                
-                FOREIGN KEY (cnpj_sol)
-                    REFERENCES prestadores(cnpj),
-                
-                nome_prestador_sol varchar(80) NOT NULL,     
+            cpf_sol char(11) NOT NULL,
+            nome_usuario_sol varchar(80) NOT NULL,
+            cnpj_sol char(14),
+            nome_prestador_sol varchar(80),
+            data_horario TIMESTAMPTZ NOT NULL,
+            id_tipo int NOT NULL,
+            tipo varchar(100) NOT NULL,
+            status varchar(50) NOT NULL,
 
-                data_horario TIMESTAMPTZ NOT NULL,
-                FOREIGN KEY (id_tipo)
-                    REFERENCES tipo(id_tipo),
-                
-                tipo varchar(100)),
-                    
-                status varchar(50) NOT NULL,
+            FOREIGN KEY (cpf_sol)
+                REFERENCES usuarios(cpf),
 
-                FOREIGN KEY (nome_usuario_sol)
-                    REFERENCES usuarios(nome_usuario),
-                FOREIGN KEY (nome_prestador_sol)
-                    REFERENCES prestadores(nome_prestador),
-                FOREIGN KEY (tipo)
-                    REFERENCES tipo(tipo)
-            )
+            FOREIGN KEY (cnpj_sol)
+                REFERENCES prestadores(cnpj),
+
+            FOREIGN KEY (id_tipo)
+                REFERENCES tipo(id_tipo)
+
+           );
             '''
             
             cursor.execute(create_table_query)
@@ -194,9 +190,10 @@ class PostGreeDB:
             print(f'Não foi possivel criar a tabela. \nMessage: {err}')    
 
     def criar_todas_as_tabelas(self):
-        self._createTableEnderecos()
         self._createTableTipo()
-        self._createTablePrestadores()
+        self._createTableEnderecos()
+        
+        #self._createTablePrestadores()
         self._createTableUsuarios()
         self._createTableComentarios()
         self._createTableSolicitacoes()
@@ -217,18 +214,37 @@ class PostGreeDB:
             print(f'- {table[0]}')  # Access the first element of the tuple
         return dict_of_tables
     
-
-    def verificaSolicitacao(self, id, cpf):
+    def verificaSolicitacaoPrestador(self, id_solicitacao, cnpj):
         cursor = self._conn.cursor()
-        query = (f"SELECT status FROM solicitacoes WHERE id_solicitacao={id} AND cpf_sol='{cpf}'")
-        cursor.execute(query)
-        resultado = cursor.fetchall
+        try:
+            cursor.execute('''SELECT status FROM solicitacoes WHERE id_solicitacao = %s AND cnpj_sol = %s;''', (id_solicitacao, cnpj))
+            resultado = cursor.fetchone()
 
-
-        if resultado and resultado != "REALIZADA":
-            return resultado[0]
-        else:
+            if resultado is not None and resultado[0] != "REALIZADA":
+                return resultado[0]
+            else:
+                return False
+        except psycopg2.Error as e:
+            print(f"Erro ao verificar solicitação: {e}")
             return False
+        finally:
+            cursor.close()
+
+    def verificaSolicitacao(self, id_solicitacao, cpf):
+        cursor = self._conn.cursor()
+        try:
+            cursor.execute('''SELECT * FROM solicitacoes WHERE id_solicitacao = %s AND cpf_sol = %s;''', (id_solicitacao, cpf))
+            resultado = cursor.fetchone()
+
+            if resultado and resultado != "REALIZADA":
+                return resultado[0]
+            else:
+                return False
+        except psycopg2.Error as e:
+            print(f"Erro ao verificar solicitação: {e}")
+            return False
+        finally:
+            cursor.close()
 
     def mudarStatus(self, id, novoStatus):
         try:
@@ -260,17 +276,33 @@ class PostGreeDB:
         nome = cursor.fetchall()
         return nome
 
-    def retornarPrestadores(self, id_tipo = None, cep = None):
+    def retornaPrestador(self, cnpj):
         cursor = self._conn.cursor()
-        cursor.execute('''SELECT nome_prestador, numero_telefone_prestador, cnpj, tipo, cep, logradouro, bairro, 
-                       cidade, descricao FROM prestadores WHERE id_tipo = {id_tipo} AND cep = {cep};''')
-        rows = cursor.fetchall()
+        try:
+            cursor.execute("SELECT * FROM prestadores WHERE cnpj = %s;", (cnpj,))
+            rows = cursor.fetchall()
 
-        # Formate e imprima os resultados
-        for row in rows:
-            print(f"[{row[0]}] {row[1]}")
+            if rows:
+                for row in rows:
+                    print(f"Nome: {row[7]}")
+                    print(f"Tipo de Serviço: {row[6]}")
+                    print(f"Número de Telefone: {row[9]}")
+                    print(f"CEP: {row[2]}")
+                    print(f"Logradouro: {row[3]}")
+                    print(f"Bairro: {row[4]}")
+                    print(f"Cidade: {row[5]}")
+                    print(f"Número do Endereço: {row[10]}")
+                    print(f"Complemento: {row[11]}")
+                    print(f"Descrição: {row[12]}")
+                    print("────────────────────────────────")
+            else:
+                print("Nenhum prestador encontrado.")
 
-        cursor.close()
+        except psycopg2.Error as e:
+            print(f"Erro ao retornar informações do usuário: {e}")
+
+        finally:
+            cursor.close()
 
     def retornarUsuario(self, cpf):
         cursor = self._conn.cursor()
@@ -286,16 +318,57 @@ class PostGreeDB:
 
         finally:
             cursor.close()
+
+    def retornarSolicitacoesPrestador(self, cnpj):
+        cursor = self._conn.cursor()
+        try:
+            # Use parâmetros para evitar SQL injection
+            cursor.execute('''SELECT * FROM solicitacoes WHERE cnpj_sol = %s;''', (cnpj,))
+            rows = cursor.fetchall()
+
+            if rows:
+                for row in rows:
+                    print(f"\nID: {row[0]}")
+                    print(f"CNPJ do Prestador: {row[3]}")
+                    print(f"Nome do Prestador: {row[4]}")
+                    print(f"Data e Horário: {row[5]}")
+                    print(f"Tipo: {row[7]}")
+                    print(f"Status: {row[8]}")
+                    print("────────────────────────────────")
+            else:
+                print("Nenhuma solicitação encontrada para este CNPJ.")
+
+        except psycopg2.Error as e:
+            print(f"Erro ao retornar solicitações do usuário: {e}")
+
+        finally:
+            cursor.close()
     
     def retornarSolicitacoesUsuario(self, cpf):
         cursor = self._conn.cursor()
-        cursor.execute('''SELECT * FROM solicitacoes WHERE cpf_sol = '{cpf}';''')
-        rows = cursor.fetchall()
+        try:
+            # Use parâmetros para evitar SQL injection
+            cursor.execute('''SELECT * FROM solicitacoes WHERE cpf_sol = %s;''', (cpf,))
+            rows = cursor.fetchall()
 
-        for row in rows:
-            print(f"[{row[0]}] {row[1]}")
+            if rows:
+                for row in rows:
+                    print(f"\nID: {row[0]}")
+                    print(f"CNPJ do Prestador: {row[3]}")
+                    print(f"Nome do Prestador: {row[4]}")
+                    print(f"Data e Horário: {row[5]}")
+                    print(f"Tipo: {row[7]}")
+                    print(f"Status: {row[8]}")
+                    print("────────────────────────────────")
+            else:
+                print("Nenhuma solicitação encontrada para este CPF.")
 
-        cursor.close()
+        except psycopg2.Error as e:
+            print(f"Erro ao retornar solicitações do usuário: {e}")
+
+        finally:
+            cursor.close()
+
 
     def mostrar_tipos(self):
         cursor = self._conn.cursor()
@@ -343,6 +416,28 @@ class PostGreeDB:
     def get_database_name(self):
         return self._database
 
+    def desmarcarServico(self, id_sol):
+        cursor = self._conn.cursor()
+        try:
+            # Atualiza o status da solicitação para "EM ABERTO" e define o nome do prestador e o CNPJ como None
+            cursor.execute('''
+                UPDATE solicitacoes
+                SET status = 'EM ABERTO', nome_prestador = NULL, cnpj = NULL
+                WHERE id_solicitacao = %s;
+            ''', (id_sol,))
+            
+            # Confirma a transação
+            self._conn.commit()
+            print(f"Solicitação {id_sol} desmarcada com sucesso.")
+        
+        except psycopg2.Error as e:
+            # Em caso de erro, reverte a transação
+            self._conn.rollback()
+            print(f"Erro ao desmarcar solicitação: {e}")
+        
+        finally:
+            cursor.close()
+
     def deleta_instance(self, table_name, condition):
         try:
             cursor = self._conn.cursor()
@@ -379,22 +474,40 @@ class PostGreeDB:
         return False
 
     def retornaTipoCNPJ(self, cnpj):
-        query = (f"SELECT tipo FROM prestadores WHERE cnpj='{cnpj}'")
+        query = (f"SELECT tipo_prestador FROM prestadores WHERE cnpj='{cnpj}'")
         result = self._querying(query)
         if result:
-            return True  
+            return result[0]  
         return False
 
 
     def visualizar_solicitacoes(self, tipo):
-        query = (f"SELECT * FROM solicitacoes WHERE tipo='{tipo}'")
-        result = self._querying(query)
-        if result:
-            return True  
-        return False
+        cursor = self._conn.cursor()
+        try:
+            # Use parâmetros para evitar SQL injection
+            cursor.execute('''SELECT * FROM solicitacoes WHERE tipo = %s;''', (tipo,))
+            rows = cursor.fetchall()
+
+            if rows:
+                for row in rows:
+                    print(f"\nID: {row[0]}")
+                    print(f"CNPJ do Prestador: {row[3]}")
+                    print(f"Nome do Prestador: {row[4]}")
+                    print(f"Data e Horário: {row[5]}")
+                    print(f"Tipo: {row[7]}")
+                    print(f"Status: {row[8]}")
+                    print("────────────────────────────────")
+            else:
+                print("Nenhuma solicitação encontrada para este tipo.")
+
+        except psycopg2.Error as e:
+            print(f"Erro ao retornar solicitações do usuário: {e}")
+
+        finally:
+            cursor.close()
     
     def visualizar_servicos_perfil(self, cnpj):
-        query = (f"SELECT * FROM solicitacoes WHERE cnpj_coment='{cnpj}'")
+        query = (f"SELECT * FROM solicitacoes WHERE cnpj_sol='{cnpj}'")
         result = self._querying(query)
         if result:
             return True  

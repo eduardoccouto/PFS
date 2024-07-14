@@ -13,8 +13,9 @@ if __name__ == "__main__":
     
     try:
         conn = PostGreeDB()
+        conn.criar_todas_as_tabelas()
         print('Conexão bem sucedida! \u2665')
-        time.sleep(2)
+        #time.sleep(2)
         limparTela()
         
     except psycopg2.errors as err:
@@ -31,7 +32,6 @@ def buscaCep(cep):
     dict_endereco = valores[0]
     
     return dict_endereco # retorna o endereco em um formato de dicionario 
-    
     
 
 def buscarCnpj(cnpj):
@@ -135,10 +135,10 @@ def cadastraEndereco(prestador : dict, cep, endereco : dict):
 def sem_conta_prestador():
     
     cnpj_temp = input("Digite o CNPJ do prestador (14 dígitos): ")
-    limparTela()
 
     if (buscarCnpj(cnpj_temp) is False):
         print("CNPJ já está cadastrado.")
+        tela_inicial()
 
     else:
         opcaoTipo, resultado = cadastraTipo()
@@ -149,7 +149,6 @@ def sem_conta_prestador():
             prestador = coletaDadosPrestador(opcaoTipo=opcaoTipo, resultado= resultado, cnpj=cnpj_temp)
             cep = input("Digite o CEP: ")
             endereco = buscaCep(cep=cep)
-            limparTela()
             
             if endereco:
                 prestador = cadastraEndereco(prestador, cep, endereco)
@@ -158,7 +157,9 @@ def sem_conta_prestador():
 
             try:
                 conn.create_line(prestador, 'prestadores')
-                print("Prestador cadastrado com sucesso!")
+                time.sleep(2)
+                limparTela()
+                main()
             except psycopg2.errors as e:
                 print(f"Erro ao cadastrar prestador: {e}")
 
@@ -166,8 +167,7 @@ def sem_conta_prestador():
     
 
 def login_prestador():
-    cnpj = input("Digite seu CNPJ (apenas números)" + '\nDigite :')
-    limparTela()
+    cnpj = input("Digite seu CNPJ (apenas números): ")
 
     while True:
         if (conn._buscar_cnpj(cnpj) is True):
@@ -175,13 +175,12 @@ def login_prestador():
             break
         else:
             senha = input("Informe sua senha: ")
-            if (conn.validar_login_prestador == True):
+            if (conn.validar_login_prestador(cnpj, senha) == True):
                 prestador_autenticado = PrestadorAutenticado(cnpj, senha)
-
-                return prestador_autenticado
+                menu_prestador(prestador_autenticado)
             else:
                 print("Senha incorreta. ")
-                return None
+                main()
 
 def modificar_solicitacao(prestador_autenticado):
     print("[1. Agendar serviço]" + "\n[2. Voltar ao menu inicial]")
@@ -189,18 +188,19 @@ def modificar_solicitacao(prestador_autenticado):
 
     match op:
         case 1:
-            sol = int(input("Opção: "))
-            status = conn.verificaSolicitacaoPrestador(sol)
+            sol = int(input("Digite o ID da solicitação: "))
+            status = conn.verificaSolicitacaoPrestador(sol, prestador_autenticado.cnpj)
             if status:
                 conn.mudarStatus(sol, "AGENDADO")   
         case 2:
             menu_prestador(prestador_autenticado)
 
 def menu_prestador(prestador_autenticado):
+    limparTela()
     print("Seja bem-vindo(a) ao Serve Para Você!")
     
     print("O que você deseja?")
-    op = int(input("[1] Visualizar solicitações de serviço" + "\n[2] Meu perfil" + "\nOpção: "))
+    op = int(input("[1] Visualizar solicitações de serviço" + "\n[2] Meu perfil" +  "\n[3] Sair" + "\nOpção: "))
     cnpj_atual = prestador_autenticado.cnpj
     match op:
         case 1:
@@ -208,12 +208,40 @@ def menu_prestador(prestador_autenticado):
             conn.visualizar_solicitacoes(tipo_atual)
             modificar_solicitacao(prestador_autenticado)
         case 2:
-            print("Meu perfil: ")
-            conn.visualizar_prestador(cnpj_atual)
-            print("Solicitações: ")
-            resultado = conn.visualizar_servicos_perfil(cnpj_atual)
-            # prestador vai ver qual solicitaçãoes ele quer cancelar/realizar
-            #thais """ PRECISO ENTENDER O CONTXTO SOU BURRO
+            print("╔════════════════════════════════╗")
+            print("║          Meu Perfil            ║")
+            print("╚════════════════════════════════╝")
+
+            print("\n╭────────────────────────────────╮")
+            print("│         Informações            │")
+            print("╰────────────────────────────────╯")
+            conn.retornaPrestador(prestador_autenticado.cnpj) # modificar para nbao aparecer a senha
+
+            print("\n╭────────────────────────────────╮")
+            print("│         Solicitações           │")
+            print("╰────────────────────────────────╯")
+            conn.retornarSolicitacoesPrestador(prestador_autenticado.cnpj)
+            print("\nO que você deseja?:")
+            op = int(input("[1] Cancelar alguma solicitação" + "\n[2] Voltar ao menu inicial" +  "\n[3] Sair" + "\nOpção: "))
+            match op:
+                case 1:
+                    opSol = int(input("\nQual solicitação você deseja cancelar (ID)? "))
+                    if conn.verificaSolicitacao(opSol, prestador_autenticado.cnpj):
+                        conn.desmarcarServico(opSol)
+                        menu_prestador()
+                    else:
+                        print("Essa solicitação não existe ou já está realizada.")
+                        menu_prestador(prestador_autenticado)
+                case 2:
+                    limparTela()
+                    menu_prestador(prestador_autenticado)
+
+                case 3:
+                    limparTela()
+                    main()
+        case 3:
+            limparTela()
+            main()
             
 
 
@@ -258,30 +286,43 @@ def menu_cliente(usuario_autenticado : UsuarioAutenticado):
             submenuSolicitacao(usuario_autenticado)
 
         case 2:
-            pprint.pprint(formataSaidaServicosDisponiveis())
+            dictFormat(formataSaidaServicosDisponiveis())
 
         case 3: 
-            print("Meu perfil:")
-            print("Informações:")
+            print("╔════════════════════════════════╗")
+            print("║          Meu Perfil            ║")
+            print("╚════════════════════════════════╝")
+
+            print("\n╭────────────────────────────────╮")
+            print("│         Informações            │")
+            print("╰────────────────────────────────╯")
             conn.retornarUsuario(usuario_autenticado.cpf) # modificar para nbao aparecer a senha
 
-            print("Solicitações:")
+            print("\n╭────────────────────────────────╮")
+            print("│         Solicitações           │")
+            print("╰────────────────────────────────╯")
             conn.retornarSolicitacoesUsuario(usuario_autenticado.cpf)
-            print("O que você deseja?:")
+            print("\nO que você deseja?:")
             op = int(input("[1] Cancelar alguma solicitação" + "\n[2] Voltar ao menu inicial" +  "\n[3] Sair" + "\nOpção: "))
             match op:
                 case 1:
-                    opSol = int(input("Qual solicitação você deseja cancelar (ID)?"))
+                    opSol = int(input("\nQual solicitação você deseja cancelar (ID)? "))
                     if conn.verificaSolicitacao(opSol, usuario_autenticado.cpf):
                         conn.deleta_instance('solicitacoes', f'id_solicitacao={opSol}')
+                        menu_cliente()
                     else:
                         print("Essa solicitação não existe ou já está realizada.")
                         menu_cliente(usuario_autenticado)
                 case 2:
+                    limparTela()
                     menu_cliente(usuario_autenticado)
 
                 case 3:
+                    limparTela()
                     main()
+        case 4:
+            limparTela()
+            main()
 
 def executeQuerySelectServices():
     desmpacotando = submenuBuscaPrestadores()
@@ -303,7 +344,11 @@ def formataSaidaServicosDisponiveis():
     
     return dict_servicos  #MEU ESSE NEGOCIO AQUI RETORNA UM DICIOINARIO VOU ME M#####3
 
-
+def dictFormat(result_from_dict : dict):
+    print('\n')
+    for j, k in result_from_dict.items():
+        print(f'{j}: {k}')
+    print('\n')
 
 
 def submenuSolicitacao(usuario_autenticado : UsuarioAutenticado):
@@ -324,6 +369,7 @@ def submenuSolicitacao(usuario_autenticado : UsuarioAutenticado):
         try:
             conn.create_line(solicitacao, 'solicitacoes')
             print("Solicitação cadastrada!")
+            menu_cliente(usuario_autenticado)
         except psycopg2.Error as e:
             print(f"Erro ao cadastrar solicitação: {e}")
 
@@ -359,6 +405,7 @@ def tela_inicial(opcao):
             if (opcao == 1):
                 limparTela()
                 login_prestador()
+                
             elif (opcao == 2):
                 limparTela()
                 login_cliente()
