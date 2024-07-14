@@ -190,10 +190,14 @@ def modificar_solicitacao(prestador_autenticado : PrestadorAutenticado):
     match op:
         case 1:
             sol = input("Digite o ID da solicitação: ")
-            status = conn.verificaSolicitacaoPrestador(sol, prestador_autenticado.cnpj)
+            status = conn.validaStatus(sol)
             if status:
                 nome_prestador = conn.retornarNome(prestador_autenticado.cnpj)
-                conn.mudarStatus(sol, "AGENDADA", prestador_autenticado.cnpj, nome_prestador)   
+                conn.mudarStatus(sol, "AGENDADA", prestador_autenticado.cnpj, nome_prestador)
+                print("Serviço agendado com sucesso.")
+
+            else:
+                print("Solicitação não encontrada ou já agendada.")
                 menu_prestador(prestador_autenticado)
         case 2:
             menu_prestador(prestador_autenticado)

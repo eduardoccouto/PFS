@@ -214,6 +214,22 @@ class PostGreeDB:
             print(f'- {table[0]}')  # Access the first element of the tuple
         return dict_of_tables
     
+    def validaStatus(self, id_solicitacao):
+        cursor = self._conn.cursor()
+        try:
+            cursor.execute(f""" SELECT status FROM solicitacoes WHERE id_solicitacao = {id_solicitacao}; """)
+            resultado = cursor.fetchone()
+
+            if resultado is not None and resultado[0] != "REALIZADA" and  resultado[0] != "AGENDADA":
+                return resultado[0]
+            else:
+                return False
+        except psycopg2.Error as e:
+            print(f"Erro ao verificar solicitação: {e}")
+            return False
+        finally:
+            cursor.close()
+
     def verificaSolicitacaoPrestador(self, id_solicitacao, cnpj):
         cursor = self._conn.cursor()
         try:
