@@ -214,14 +214,14 @@ class PostGreeDB:
             print(f'- {table[0]}')  # Access the first element of the tuple
         return dict_of_tables
     
-    def verificaSolicitacaoPrestador(self, id_solicitacao):
+    def verificaSolicitacaoPrestador(self, id_solicitacao, cnpj):
         cursor = self._conn.cursor()
         try:
-            cursor.execute(f""" SELECT status FROM solicitacoes WHERE id_solicitacao = {id_solicitacao}; """)
+            cursor.execute(f""" SELECT status FROM solicitacoes WHERE id_solicitacao = {id_solicitacao} AND cnpj_sol='{cnpj}'; """)
             resultado = cursor.fetchone()
 
             
-            if resultado is not None and resultado[0] != "REALIZADA":
+            if resultado is not None and resultado[0] != "REALIZADA" and  resultado[0] != "AGENDADA":
                 return resultado[0]
             else:
                 return False
@@ -234,41 +234,31 @@ class PostGreeDB:
     def verificaSolicitacao(self, id_solicitacao, cpf):
         cursor = self._conn.cursor()
         try:
-            cursor.execute('''SELECT * FROM solicitacoes WHERE id_solicitacao = %s AND cpf_sol = %s;''', (id_solicitacao, cpf))
+            cursor.execute('''SELECT status FROM solicitacoes WHERE id_solicitacao = %s AND cpf_sol = %s;''', (id_solicitacao, cpf))
             resultado = cursor.fetchone()
-
-            if resultado and resultado != "REALIZADA":
-                return resultado[0]
-            else:
-                return False
+            if resultado:  # Verifica se algum resultado foi retornado
+                status = resultado[0]  # Acessa o primeiro (e único) elemento da tupla
+                if status != "REALIZADA":
+                    return status
+            return False
         except psycopg2.Error as e:
-            print(f"Erro ao verificar solicitação: {e}")
+            print(f"Erro ao verificar a solicitação: {e}")
             return False
         finally:
             cursor.close()
+        
 
-    def mudarStatus(self, id, novoStatus):
+    def mudarStatus(self, id, novoStatus, cnpj, nome_prestador):
         try:
             cursor = self._conn.cursor()
-            query = "UPDATE solicitacoes SET status = %s WHERE id_solicitacao = %s"
-            cursor.execute(query, (novoStatus, id))
+            query = "UPDATE solicitacoes SET status = %s, nome_prestador_sol = %s, cnpj_sol = %s WHERE id_solicitacao = %s"
+            cursor.execute(query, (novoStatus, nome_prestador, cnpj, id))
             self._conn.commit()
             print("Status da solicitação atualizado com sucesso!")
         except psycopg2.Error as e:
             print(f"Erro ao atualizar o status da solicitação: {e}")
         finally:
             cursor.close()
-
-    def verificaSolicitacaoPrestador(self, id):
-        cursor = self._conn.cursor()
-        query = f"""SELECT status FROM solicitacoes WHERE id_solicitacao = {id} """
-        cursor.execute(query)
-        resultado = cursor.fetchall()  # Adicione os parênteses aqui
-
-        if resultado and resultado[0][0] != "REALIZADA":  # Ajuste a verificação
-            return resultado[0][0]
-        else:
-            return False
 
     def procuraNome(self, cpf):
         cursor = self._conn.cursor()
@@ -369,6 +359,12 @@ class PostGreeDB:
         finally:
             cursor.close()
 
+    def retornarNome(self, cnpj):
+        cursor = self._conn.cursor()
+        query = "SELECT nome_prestador FROM prestadores WHERE cnpj= %s ;"
+        cursor.execute(query,(cnpj))
+        resultado = cursor.fetchone()
+        return resultado[0]
 
     def mostrar_tipos(self):
         cursor = self._conn.cursor()
@@ -422,7 +418,7 @@ class PostGreeDB:
             # Atualiza o status da solicitação para "EM ABERTO" e define o nome do prestador e o CNPJ como None
             cursor.execute('''
                 UPDATE solicitacoes
-                SET status = 'EM ABERTO', nome_prestador = NULL, cnpj = NULL
+                SET status = 'EM ABERTO', nome_prestador_sol = NULL, cnpj_sol = NULL
                 WHERE id_solicitacao = %s;
             ''', (id_sol,))
             

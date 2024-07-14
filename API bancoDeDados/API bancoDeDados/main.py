@@ -190,15 +190,15 @@ def modificar_solicitacao(prestador_autenticado : PrestadorAutenticado):
     match op:
         case 1:
             sol = input("Digite o ID da solicitação: ")
-            status = conn.verificaSolicitacaoPrestador(sol)
+            status = conn.verificaSolicitacaoPrestador(sol, prestador_autenticado.cnpj)
             if status:
-                conn.mudarStatus(sol, "AGENDADO")   
-                
+                nome_prestador = conn.retornarNome(prestador_autenticado.cnpj)
+                conn.mudarStatus(sol, "AGENDADA", prestador_autenticado.cnpj, nome_prestador)   
+                menu_prestador(prestador_autenticado)
         case 2:
             menu_prestador(prestador_autenticado)
 
 def menu_prestador(prestador_autenticado: PrestadorAutenticado):
-    limparTela()
     print("Seja bem-vindo(a) ao Serve Para Você!")
     
     print("O que você deseja?")
@@ -229,9 +229,9 @@ def menu_prestador(prestador_autenticado: PrestadorAutenticado):
             match op:
                 case 1:
                     opSol = int(input("\nQual solicitação você deseja cancelar (ID)? "))
-                    if conn.verificaSolicitacao(opSol, prestador_autenticado.cnpj):
+                    if conn.verificaSolicitacaoPrestador(opSol, prestador_autenticado.cnpj):
                         conn.desmarcarServico(opSol)
-                        menu_prestador()
+                        menu_prestador(prestador_autenticado)
                     else:
                         print("Essa solicitação não existe ou já está realizada.")
                         menu_prestador(prestador_autenticado)
@@ -290,6 +290,7 @@ def menu_cliente(usuario_autenticado : UsuarioAutenticado):
 
         case 2:
             dictFormat(formataSaidaServicosDisponiveis())
+            menu_cliente(usuario_autenticado)
 
         case 3: 
             print("╔════════════════════════════════╗")
@@ -330,7 +331,7 @@ def menu_cliente(usuario_autenticado : UsuarioAutenticado):
 def executeQuerySelectServices():
     desmpacotando = submenuBuscaPrestadores()
     referencia, marcador = desmpacotando
-    query = f""" select nome_prestador, tipo_prestador, descricao from prestadores where {marcador} = '{referencia}'; """
+    query = f""" select nome_prestador, tipo_prestador, numero_telefone_prestador, descricao from prestadores where {marcador} = '{referencia}'; """
     result_from_query = conn._querying(query)
     return result_from_query
 
@@ -339,7 +340,7 @@ def executeQuerySelectServices():
 def formataSaidaServicosDisponiveis():
 
     servicos = executeQuerySelectServices()
-    marcadores = ('Nome do Prestador', 'Tipo de Serviço', 'Descrição do Serviço')
+    marcadores = ('Nome do Prestador', 'Tipo de Serviço','Contato', 'Descrição do Serviço')
     valores = []
     for dados in servicos:
                 valores.append(dict(zip(marcadores, dados)))        
@@ -379,7 +380,7 @@ def submenuSolicitacao(usuario_autenticado : UsuarioAutenticado):
 def submenuBuscaServicos():
     
    return """ 
-[1. Pesqusar por tipo de serviço]
+[1. Pesquisar por tipo de serviço]
 [2. Pesquisar por CEP  
 """
 
