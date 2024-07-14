@@ -261,16 +261,15 @@ class PostGreeDB:
 
     def verificaSolicitacaoPrestador(self, id):
         cursor = self._conn.cursor()
-        query = (f"SELECT status FROM solicitacoes WHERE id_solicitacao={id}'")
+        query = f"""SELECT status FROM solicitacoes WHERE id_solicitacao = {id} """
         cursor.execute(query)
-        resultado = cursor.fetchall
+        resultado = cursor.fetchall()  # Adicione os parênteses aqui
 
-
-        if resultado and resultado != "REALIZADA":
-            return resultado[0]
+        if resultado and resultado[0][0] != "REALIZADA":  # Ajuste a verificação
+            return resultado[0][0]
         else:
             return False
-        
+
     def procuraNome(self, cpf):
         cursor = self._conn.cursor()
         cursor.execute(f"SELECT nome_usuario FROM usuarios WHERE cpf='{cpf}';")
