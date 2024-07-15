@@ -223,6 +223,54 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    def visualizar_avaliações_clientes(self, cpf):
+        cursor = self._conn.cursor()
+        try:
+            cursor.execute(f"""SELECT * FROM avaliacoes_clientes WHERE cpf_av = '{cpf}'; """)
+            rows = cursor.fetchall()
+
+            if rows:
+                for row in rows:
+                    print(f"\nID da Avaliação: {row[0]}")
+                    print(f"CPF do Cliente: {row[1]}")
+                    print(f"Nome do Cliente: {row[2]}")
+                    print(f"CNPJ do Prestador Avaliador: {row[3]}")
+                    print(f"Nome do Prestador Avaliador: {row[4]}")
+                    print(f"Avaliação: {row[5]}")
+                    print("────────────────────────────────")
+            else:
+                print("Nenhuma avaliação encontrada para este cliente.")
+
+        except psycopg2.Error as e:
+            print(f"Erro ao retornar avaliações do cliente: {e}")
+
+        finally:
+            cursor.close()
+            
+    def visualizar_avaliações_prestadores(self, cnpj):
+        cursor = self._conn.cursor()
+        try:
+            cursor.execute(f"""SELECT * FROM avaliacoes_prestadores WHERE cnpj_av = '{cnpj}'; """)
+            rows = cursor.fetchall()
+
+            if rows:
+                for row in rows:
+                    print(f"\nID da Avaliação: {row[0]}")
+                    print(f"CNPJ do Prestador: {row[1]}")
+                    print(f"Nome do Prestador: {row[2]}")
+                    print(f"CPF do Cliente Avaliador: {row[3]}")
+                    print(f"Nome do Cliente Avaliador: {row[4]}")
+                    print(f"Avaliação: {row[5]}")
+                    print("────────────────────────────────")
+            else:
+                print("Nenhuma avaliação encontrada para este prestador.")
+
+        except psycopg2.Error as e:
+            print(f"Erro ao retornar avaliações do prestador: {e}")
+
+        finally:
+            cursor.close()
+
     def deleta_instance(self, table_name, condition):
         try:
             cursor = self._conn.cursor()
