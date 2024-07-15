@@ -7,6 +7,7 @@ class PostGreeDB(CreateTables):
     def __init__(self):
         super().__init__()
         
+    #verifica se o status do serviço é diferente de "realizado" e "agendado" na tabela de solicitações.    
     def validaStatus(self, id_solicitacao):
         cursor = self._conn.cursor()
         try:
@@ -23,6 +24,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #verifica se o status do serviço é diferente de "realizado" e "agendado" na tabela de solicitações.   
     def verificaSolicitacaoPrestador(self, id_solicitacao, cnpj):
         cursor = self._conn.cursor()
         try:
@@ -40,6 +42,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #verifica se o status do serviço é diferente de "realizado" e "agendado" na tabela de solicitações, utilizando cpf de quem solicitou. 
     def verificaSolicitacao(self, id_solicitacao, cpf):
         cursor = self._conn.cursor()
         try:
@@ -56,7 +59,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
         
-
+    #função para mudar o status de uma solicitação(AGENDADO, REALIZADO, EM ABERTO)
     def mudarStatus(self, id, novoStatus, cnpj, nome_prestador):
         try:
             cursor = self._conn.cursor()
@@ -69,12 +72,14 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #retorna o nome de um usuario na tabela com base no cpf
     def procuraNome(self, cpf):
         cursor = self._conn.cursor()
         cursor.execute(f"SELECT nome_usuario FROM usuarios WHERE cpf='{cpf}';")
         nome = cursor.fetchall()
         return nome
 
+    #retorna os dados de um prestador com base no cnpj
     def retornaPrestador(self, cnpj):
         cursor = self._conn.cursor()
         try:
@@ -103,6 +108,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #retorna dados basicos de um usuario com base no cpf
     def retornarUsuario(self, cpf):
         cursor = self._conn.cursor()
         try:
@@ -118,10 +124,11 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #retorna as solicitacoes de um prestador 
     def retornarSolicitacoesPrestador(self, cnpj):
         cursor = self._conn.cursor()
         try:
-            # Use parâmetros para evitar SQL injection
+            
             cursor.execute('''SELECT * FROM solicitacoes WHERE cnpj_sol = %s;''', (cnpj,))
             rows = cursor.fetchall()
 
@@ -143,10 +150,11 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
     
+    #retorna as solicitações de servico de um usuario com base 
     def retornarSolicitacoesUsuario(self, cpf):
         cursor = self._conn.cursor()
         try:
-            # Use parâmetros para evitar SQL injection
+           
             cursor.execute('''SELECT * FROM solicitacoes WHERE cpf_sol = %s;''', (cpf,))
             rows = cursor.fetchall()
 
@@ -168,6 +176,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #retorna apenas o nome de um prestador
     def retornarNome(self, cnpj):
         cursor = self._conn.cursor()
         query = f"""SELECT nome_prestador FROM prestadores WHERE cnpj= '{cnpj}' ;"""
@@ -175,6 +184,7 @@ class PostGreeDB(CreateTables):
         resultado = cursor.fetchone()
         return resultado[0]
 
+    #obtém todos os tipos de serviços disponiveis no banco de dados
     def mostrar_tipos(self):
         cursor = self._conn.cursor()
         cursor.execute("SELECT * FROM tipo;")
@@ -188,6 +198,7 @@ class PostGreeDB(CreateTables):
 
         cursor.close()
     
+    #Rtorna um tipo de servico com base no id de consulta
     def retornaTipo(self, id_tipo):
         cursor = self._conn.cursor()
         cursor.execute(f"SELECT tipo FROM tipo WHERE id_tipo = {id_tipo};")
@@ -200,11 +211,12 @@ class PostGreeDB(CreateTables):
         if result:
             return result
         return False
-        
+    
+     # Atualiza o status da solicitação para "EM ABERTO" e define o nome do prestador e o CNPJ como None
     def desmarcarServico(self, id_sol):
         cursor = self._conn.cursor()
         try:
-            # Atualiza o status da solicitação para "EM ABERTO" e define o nome do prestador e o CNPJ como None
+           
             cursor.execute('''
                 UPDATE solicitacoes
                 SET status = 'EM ABERTO', nome_prestador_sol = NULL, cnpj_sol = NULL
@@ -223,6 +235,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #retorna a visualizãção de avaliações do cliente com base na consulta ao bd
     def visualizar_avaliações_clientes(self, cpf):
         cursor = self._conn.cursor()
         try:
@@ -246,7 +259,8 @@ class PostGreeDB(CreateTables):
 
         finally:
             cursor.close()
-            
+    
+    #retorna a visualizãção de avaliações do prestador com base na consulta ao bd     
     def visualizar_avaliações_prestadores(self, cnpj):
         cursor = self._conn.cursor()
         try:
@@ -271,6 +285,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
 
+    #deleta uma solicitação da tabela solicitacoes
     def deleta_instance(self, table_name, condition):
         try:
             cursor = self._conn.cursor()
@@ -291,7 +306,8 @@ class PostGreeDB(CreateTables):
             raise (f'An error occur during the insert ' +
                     f'operation on {self._database}\n Message:'
                     f'{err}')
-    
+            
+    #retorna verdadeira ou falso consforme o resultado da consulta ao bd
     def visualizar_prestador(self, cnpj):
         query = (f"SELECT * FROM prestadores WHERE cnpj='{cnpj}'")
         result = self._querying(query)
@@ -299,6 +315,7 @@ class PostGreeDB(CreateTables):
             return True  
         return False
     
+     #retorna verdadeira ou falso consforme o resultado da consulta ao bd
     def visualizar_cliente(self, cpf):
         query = (f"SELECT * FROM usuarios WHERE cnpj='{cpf}'")
         result = self._querying(query)
@@ -306,6 +323,7 @@ class PostGreeDB(CreateTables):
             return True  
         return False
 
+    #retorna falso ou tipo de serviço que o prestador executa com base no bd
     def retornaTipoCNPJ(self, cnpj):
         query = (f"SELECT tipo_prestador FROM prestadores WHERE cnpj='{cnpj}'")
         result = self._querying(query)
@@ -313,7 +331,7 @@ class PostGreeDB(CreateTables):
             return result[0]  
         return False
 
-
+    #visuliza solicitacoes conforme o tipo
     def visualizar_solicitacoes(self, tipo):
         cursor = self._conn.cursor()
         try:
@@ -339,6 +357,7 @@ class PostGreeDB(CreateTables):
         finally:
             cursor.close()
     
+    #retorna verdadeiro ou falso para o cnpj que realizou solicitações
     def visualizar_servicos_perfil(self, cnpj):
         query = (f"SELECT * FROM solicitacoes WHERE cnpj_sol='{cnpj}'")
         result = self._querying(query)
@@ -371,7 +390,7 @@ class PostGreeDB(CreateTables):
         if table_name not in self._get_list_of_database_tables():
             raise f'Table not found in the {self._database} database'
 
-    #CRUD operations
+    #metodo que recebe o nome da tabela e um dicionario para inserir dados no banco
     def create_line(self, attr: dict, table_name: str):
         key_list, placeholders = self._retornar_lista_de_chaves_e_placeholders(attr)
         insertion_query = f"INSERT INTO {table_name} ({key_list}) VALUES ({placeholders})"
@@ -384,6 +403,7 @@ class PostGreeDB(CreateTables):
         self._conn.commit()
         return True
 
+    #retorna o resultado de uma busca de endereço pelo cep
     def buscar_endereco_por_cep(self, cep):
         query = f"SELECT * FROM enderecos WHERE cep = '{cep}'"
         result = self._querying(query)
@@ -391,6 +411,7 @@ class PostGreeDB(CreateTables):
             return result  # Retorna o primeiro (e único) resultado
         return None
     
+    #retorna o estado da consulta para saber se o prestador está cadastrado na tabela
     def _buscar_cnpj(self, cnpj):
         query = f"SELECT * FROM prestadores WHERE cnpj = '{cnpj}'"
         result = self._querying(query)
@@ -398,6 +419,7 @@ class PostGreeDB(CreateTables):
             return False  
         return True
     
+    #retorna verdadeiro ou falso para caso 
     def validar_login_prestador(self, cnpj, senha):
         query = f""" SELECT * FROM prestadores WHERE cnpj = '{cnpj}' AND senha_prestador = '{senha}'; """
         result = self._querying(query)
@@ -405,12 +427,14 @@ class PostGreeDB(CreateTables):
             return True 
         return False
     
+    #busca apenas o cpf da tabela
     def buscar_cpf(self, cpf):
         query = f"SELECT * FROM usuarios WHERE cpf = '{cpf}';"
         if self._querying(query):
             return False
         return True
     
+    #valida o login do usuario retonando o estado
     def validar_login_usuario(self, cpf, senha):
         query = f""" SELECT * FROM usuarios WHERE cpf = '{cpf}' AND senha_usuario = '{senha}'; """
         result = self._querying(query)
