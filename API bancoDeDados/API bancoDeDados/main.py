@@ -180,6 +180,7 @@ def login_prestador():
         if conn.validar_login_prestador(cnpj, senha) is True:
             prestador_autenticado = PrestadorAutenticado(cnpj, senha)
             menu_prestador(prestador_autenticado)
+            limparTela()
             return menu_prestador(prestador_autenticado)
             
             
