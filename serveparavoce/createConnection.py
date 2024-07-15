@@ -10,15 +10,11 @@ class CreateConnection:
 
     # Método inicializador da classe
     def __init__(self):
-        # Obtém o valor da variável de ambiente DB_USER e armazena em self._user
-        self._user = os.getenv("DB_USER")
-        # Obtém o valor da variável de ambiente DB_PASSWORD e armazena em self._password
+        
+        self._user = os.getenv("DB_USER") # Obtém o valor da variável de ambiente DB_USER e armazena em self._user
         self._password = os.getenv("DB_PASSWORD")
-        # Obtém o valor da variável de ambiente DB_NAME e armazena em self._database
         self._database = os.getenv("DB_NAME")
-        # Obtém o valor da variável de ambiente DB_HOST e armazena em self._host
         self._host = os.getenv("DB_HOST")
-        # Cria uma conexão com o banco de dados chamando o método getConnection e armazena em self._conn
         self._conn = self.getConnection()
         # Imprime o status do servidor chamando o método statusServer
         print(self.statusServer())
