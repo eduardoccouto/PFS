@@ -21,35 +21,6 @@ if __name__ == "__main__":
         print('Não foi possivel estabelecer conexão ao banco de dados. '
               f'Erro: {err}')
 
-#retorna valores atribuidos na base de endereços do banco de dados
-def buscaCep(cep):
-    endereco = conn.buscar_endereco_por_cep(cep=cep)
-    marcadores = ('cep', 'logradouro', 'bairro', 'cidade')
-    valores = []
-    for dados in endereco:
-                valores.append(dict(zip(marcadores, dados)))        
-    dict_endereco = valores[0]
-    
-    return dict_endereco # retorna o endereco em um formato de dicionario 
-    
-
-def buscarCnpj(cnpj):
-    return conn._buscar_cnpj(cnpj=cnpj) 
-
-def listaTiposDeServicos():
-    return conn.mostrar_tipos()
-
-def cadastraTipo(): #retorna o codigo do tipo de serviço e e o tipo de serviço
-
-    print("====================================")
-    listaTiposDeServicos()
-    print("====================================")
-    op_tipo = input("Informe o cod. do tipo de serviço: ")
-    limparTela()
-    result = conn.retornaTipo(op_tipo)
-    
-    return op_tipo, result
-
 # CLIENTE ---------------------------------------------------------------------------------------------------------
 def buscarcpf(cpf):
     return conn.buscar_cpf(cpf)
@@ -62,6 +33,79 @@ def obterDadosCliente(cpf):
     cliente['numero_telefone_usuario'] = input("Digite seu número de telefone (apenas números): ")
     return cliente #retorna um dicionario com as informações do cliente 
     
+def telaUsuario(usuario_autenticado : UsuarioAutenticado): #retorna a opção do menu da tela do usuário
+    print(f"""
+Bem-vindo(a) ao Serve para Você! 
+Usuário logado: {usuario_autenticado.cpf}
+O que você deseja?
+
+1 | [Fazer solicitação]
+2 | [Pesquisar serviços]
+3 | [Meu perfil]
+4 | [Avaliações]
+5 | [Sair] 
+""")
+          
+    op = int(input("Opção: "))
+    return op 
+
+def menu_cliente(usuario_autenticado: UsuarioAutenticado):
+    op = telaUsuario(usuario_autenticado)  # Obtém a opção do usuário
+
+    # Verifica a opção escolhida
+    match op:
+        case 1:
+            submenuSolicitacao(usuario_autenticado)  # Chama a função para lidar com solicitações
+
+        case 2:
+            # Formata e exibe os serviços disponíveis
+            dictFormat(formataSaidaServicosDisponiveis())
+            menu_cliente(usuario_autenticado)  # Volta ao menu principal
+
+        case 3:
+            print("╔════════════════════════════════╗")
+            print("║          Meu Perfil            ║")
+            print("╚════════════════════════════════╝")
+
+            # Exibe informações do usuário
+            print("\n╭────────────────────────────────╮")
+            print("│         Informações            │")
+            print("╰────────────────────────────────╯")
+            conn.retornarUsuario(usuario_autenticado.cpf)
+
+            # Exibe solicitações do usuário
+            print("\n╭────────────────────────────────╮")
+            print("│         Solicitações           │")
+            print("╰────────────────────────────────╯")
+            conn.retornarSolicitacoesUsuario(usuario_autenticado.cpf)
+
+            # Pergunta ao usuário o que deseja fazer
+            print("\nO que você deseja?:")
+            op = int(input("[1] Cancelar alguma solicitação\n[2] Voltar ao menu inicial\n[3] Sair\nOpção: "))
+            match op:
+                case 1:
+                    opSol = int(input("\nQual solicitação você deseja cancelar (ID)? "))
+                    if conn.verificaSolicitacao(opSol, usuario_autenticado.cpf):
+                        conn.deleta_instance('solicitacoes', f'id_solicitacao={opSol}')
+                        menu_cliente()  # Volta ao menu principal
+                    else:
+                        print("Essa solicitação não existe ou já está realizada.")
+                        menu_cliente(usuario_autenticado)  # Volta ao menu principal
+
+                case 2:
+                    limparTela()
+                    menu_cliente(usuario_autenticado)  # Volta ao menu principal
+
+                case 3:
+                    limparTela()
+                    main()  # Sai do programa
+
+        case 4:
+            avaliar_prestador(usuario_autenticado)  # Avalia um prestador de serviços
+
+        case 5:
+            limparTela()
+            main()  # Sai do programa
 
 def sem_conta_cliente(): #realiza o cadastro do cliente e retona um dicionario com as informções dele
     
@@ -106,7 +150,130 @@ def login_cliente(): #faz a autenticação do login
                 print("Senha incorreta. ")
                 return None
 
+def submenuBuscaServicos():
+    
+   return """ 
+[1. Pesquisar por tipo de serviço]
+[2. Pesquisar por CEP  
+""" #retorna um submenu de serviços
+
+def executeQuerySelectServices(): #retorna as informações da consulta com base nos marcadores
+    desmpacotando = submenuBuscaPrestadores()
+    referencia, marcador = desmpacotando
+    query = f""" select nome_prestador, tipo_prestador, numero_telefone_prestador, descricao from prestadores where {marcador} = '{referencia}'; """
+    result_from_query = conn._querying(query)
+    return result_from_query 
+
+def avaliar_prestador(usuario_autenticado: UsuarioAutenticado):
+    # Solicita ao usuário a escolha da ação
+    print("O que você deseja?")
+    avaliacao = {}
+    op = int(input("[1] Fazer uma avaliação\n[2] Pesquisar avaliações\nOpção: "))
+    
+    # Trata o caso 1: Fazer uma avaliação
+    match op:
+        case 1:
+            cnpj = input("Qual o CNPJ de quem você deseja fazer a avaliação? ")
+            if conn._buscar_cnpj(cnpj) is False:
+                # Coleta detalhes da avaliação
+                avaliacao['cnpj_av'] = cnpj
+                avaliacao['nome_prestador_av'] = conn.retornarNome(cnpj)
+                avaliacao['cpf_av'] = usuario_autenticado.cpf
+                avaliacao['nome_cliente_av'] = conn.procuraNome(usuario_autenticado.cpf)
+                avaliacao_desc = input("Faça sua avaliação: ")
+                avaliacao['descricao'] = avaliacao_desc
+                # Cria entrada de avaliação
+                conn.create_line(avaliacao, 'avaliacoes_prestadores')
+                print("Avaliação cadastrada!")
+                time.sleep(3)
+                menu_cliente(usuario_autenticado)
+            else:
+                print("CNPJ inválido.")
+        
+        # Trata o caso 2: Visualizar avaliações
+        case 2:
+            cnpj = input("Qual o CNPJ de quem você deseja visualizar as avaliações? ")
+            conn.visualizar_avaliações_prestadores(cnpj)
+            time.sleep(4)
+            menu_cliente(usuario_autenticado)
+
+def formataSaidaServicosDisponiveis(): #trata uma entrada em formato de tupla para que ela retorna um dicionario 
+
+    servicos = executeQuerySelectServices()
+    marcadores = ('Nome do Prestador', 'Tipo de Serviço','Contato', 'Descrição do Serviço')
+    valores = []
+    for dados in servicos:
+                valores.append(dict(zip(marcadores, dados)))        
+    dict_servicos = valores[0]
+    
+    return dict_servicos  
+
+def dictFormat(result_from_dict : dict): #Forma a saida de um dicionário no print
+    print('\n')
+    for j, k in result_from_dict.items():
+        print(f'{j}: {k}')
+    print('\n')
+
+def submenuSolicitacao(usuario_autenticado: UsuarioAutenticado):
+    # Cria um dicionário vazio para armazenar os dados da solicitação
+    solicitacao = {}
+
+    # Chama a função cadastraTipo() para obter a opção de tipo e o resultado
+    opcaoTipo, resultado = cadastraTipo()
+
+    # Verifica se a opção é inválida
+    if resultado == False:
+        print("Opção inválida.")
+    else:
+        # Preenche os campos do dicionário de solicitação
+        solicitacao['cpf_sol'] = usuario_autenticado.cpf
+        solicitacao['nome_usuario_sol'] = conn.procuraNome(usuario_autenticado.cpf)
+        solicitacao['cnpj_sol'] = None
+        solicitacao['nome_prestador_sol'] = None
+        solicitacao['data_horario'] = datetime.now(pytz.UTC)
+        solicitacao['id_tipo'] = opcaoTipo
+        solicitacao['tipo'] = resultado
+        solicitacao['status'] = "EM ABERTO"
+
+        try:
+            # Tenta criar uma linha na tabela 'solicitacoes'
+            conn.create_line(solicitacao, 'solicitacoes')
+            print("Solicitação cadastrada!")
+            menu_cliente(usuario_autenticado)
+        except psycopg2.Error as e:
+            print(f"Erro ao cadastrar solicitação: {e}")
+
+
 # PRESTADOR -------------------------------------------------------------------------------------------------------
+#retorna valores atribuidos na base de endereços do banco de dados
+def buscaCep(cep):
+    endereco = conn.buscar_endereco_por_cep(cep=cep)
+    marcadores = ('cep', 'logradouro', 'bairro', 'cidade')
+    valores = []
+    for dados in endereco:
+                valores.append(dict(zip(marcadores, dados)))        
+    dict_endereco = valores[0]
+    
+    return dict_endereco # retorna o endereco em um formato de dicionario 
+    
+
+def buscarCnpj(cnpj):
+    return conn._buscar_cnpj(cnpj=cnpj) 
+
+def listaTiposDeServicos():
+    return conn.mostrar_tipos()
+
+def cadastraTipo(): #retorna o codigo do tipo de serviço e e o tipo de serviço
+
+    print("====================================")
+    listaTiposDeServicos()
+    print("====================================")
+    op_tipo = input("Informe o cod. do tipo de serviço: ")
+    limparTela()
+    result = conn.retornaTipo(op_tipo)
+    
+    return op_tipo, result
+    
 def coletaDadosPrestador(opcaoTipo, resultado, cnpj): #retorna um dicionario com as informações do funcionário
     
     prestador = {}
@@ -136,27 +303,27 @@ def sem_conta_prestador(): #realiza o cadastro do prestador
     
     cnpj_temp = input("Digite o CNPJ do prestador (14 dígitos): ")
 
-    if (buscarCnpj(cnpj_temp) is False):
+    if (buscarCnpj(cnpj_temp) is False): # se buscarCnpj é falso, quer dizer que já existe o cnpj digitado no banco
         print("CNPJ já está cadastrado.")
         tela_inicial()
 
     else:
-        opcaoTipo, resultado = cadastraTipo()
+        opcaoTipo, resultado = cadastraTipo() # o opcaoTipo é o id do tipo e o resultado é o nome
         
-        if (resultado == False):
+        if (resultado == False): # se for falso, o tipo digitado é inválido
             print ("Opção inválida.")
         else:
-            prestador = coletaDadosPrestador(opcaoTipo=opcaoTipo, resultado= resultado, cnpj=cnpj_temp)
+            prestador = coletaDadosPrestador(opcaoTipo=opcaoTipo, resultado= resultado, cnpj=cnpj_temp) 
             cep = input("Digite o CEP: ")
-            endereco = buscaCep(cep=cep)
+            endereco = buscaCep(cep=cep) 
             
-            if endereco:
+            if endereco: # se o cep for válido, atribui as informações ao prestador
                 prestador = cadastraEndereco(prestador, cep, endereco)
             else:
                 print("CEP não encontrado. Por favor, tente novamente.")
 
             try:
-                conn.create_line(prestador, 'prestadores')
+                conn.create_line(prestador, 'prestadores') 
                 time.sleep(2)
                 limparTela()
                 main()
@@ -169,7 +336,7 @@ def sem_conta_prestador(): #realiza o cadastro do prestador
 
 def login_prestador(): #faz a autenticação do login do prestador
     
-    cnpj = input("Digite seu CNPJ (apenas números): ")
+    cnpj = input("Digite seu CNPJ (apenas números): ") 
 
     if conn._buscar_cnpj(cnpj) is True:
         print("Usuário não cadastrado \n Digite novamente.")
@@ -177,9 +344,9 @@ def login_prestador(): #faz a autenticação do login do prestador
 
     else:
         senha = input("Informe sua senha: ")
-        if conn.validar_login_prestador(cnpj, senha) is True:
+        if conn.validar_login_prestador(cnpj, senha) is True: # se a senha é a correta, instancia o PrestadorAutenticado com as informações
             prestador_autenticado = PrestadorAutenticado(cnpj, senha)
-            menu_prestador(prestador_autenticado)
+            menu_prestador(prestador_autenticado) # e chama o menu de opções para prestador
             limparTela()
             return menu_prestador(prestador_autenticado)
             
@@ -298,89 +465,6 @@ def submenuBuscaPrestadores():
         
     return None, None  # Retorna None se nenhuma opção válida for escolhida
 
-
-def telaUsuario(usuario_autenticado : UsuarioAutenticado): #retorna a opção do menu da tela do usuário
-    print(f"""
-Bem-vindo(a) ao Serve para Você! 
-Usuário logado: {usuario_autenticado.cpf}
-O que você deseja?
-
-1 | [Fazer solicitação]
-2 | [Pesquisar serviços]
-3 | [Meu perfil]
-4 | [Avaliações]
-5 | [Sair] 
-""")
-          
-    op = int(input("Opção: "))
-    return op 
-
-def menu_cliente(usuario_autenticado: UsuarioAutenticado):
-    op = telaUsuario(usuario_autenticado)  # Obtém a opção do usuário
-
-    # Verifica a opção escolhida
-    match op:
-        case 1:
-            submenuSolicitacao(usuario_autenticado)  # Chama a função para lidar com solicitações
-
-        case 2:
-            # Formata e exibe os serviços disponíveis
-            dictFormat(formataSaidaServicosDisponiveis())
-            menu_cliente(usuario_autenticado)  # Volta ao menu principal
-
-        case 3:
-            print("╔════════════════════════════════╗")
-            print("║          Meu Perfil            ║")
-            print("╚════════════════════════════════╝")
-
-            # Exibe informações do usuário
-            print("\n╭────────────────────────────────╮")
-            print("│         Informações            │")
-            print("╰────────────────────────────────╯")
-            conn.retornarUsuario(usuario_autenticado.cpf)
-
-            # Exibe solicitações do usuário
-            print("\n╭────────────────────────────────╮")
-            print("│         Solicitações           │")
-            print("╰────────────────────────────────╯")
-            conn.retornarSolicitacoesUsuario(usuario_autenticado.cpf)
-
-            # Pergunta ao usuário o que deseja fazer
-            print("\nO que você deseja?:")
-            op = int(input("[1] Cancelar alguma solicitação\n[2] Voltar ao menu inicial\n[3] Sair\nOpção: "))
-            match op:
-                case 1:
-                    opSol = int(input("\nQual solicitação você deseja cancelar (ID)? "))
-                    if conn.verificaSolicitacao(opSol, usuario_autenticado.cpf):
-                        conn.deleta_instance('solicitacoes', f'id_solicitacao={opSol}')
-                        menu_cliente()  # Volta ao menu principal
-                    else:
-                        print("Essa solicitação não existe ou já está realizada.")
-                        menu_cliente(usuario_autenticado)  # Volta ao menu principal
-
-                case 2:
-                    limparTela()
-                    menu_cliente(usuario_autenticado)  # Volta ao menu principal
-
-                case 3:
-                    limparTela()
-                    main()  # Sai do programa
-
-        case 4:
-            avaliar_prestador(usuario_autenticado)  # Avalia um prestador de serviços
-
-        case 5:
-            limparTela()
-            main()  # Sai do programa
-
-
-def executeQuerySelectServices(): #retorna as informações da consulta com base nos marcadores
-    desmpacotando = submenuBuscaPrestadores()
-    referencia, marcador = desmpacotando
-    query = f""" select nome_prestador, tipo_prestador, numero_telefone_prestador, descricao from prestadores where {marcador} = '{referencia}'; """
-    result_from_query = conn._querying(query)
-    return result_from_query 
- 
 def avaliar_cliente(prestador_autenticado: PrestadorAutenticado):
     # Exibe uma mensagem para o usuário
     print("O que você deseja?")
@@ -416,123 +500,30 @@ def avaliar_cliente(prestador_autenticado: PrestadorAutenticado):
             # Volta ao menu do prestador
             menu_prestador(prestador_autenticado)
 
-
-def avaliar_prestador(usuario_autenticado: UsuarioAutenticado):
-    # Solicita ao usuário a escolha da ação
-    print("O que você deseja?")
-    avaliacao = {}
-    op = int(input("[1] Fazer uma avaliação\n[2] Pesquisar avaliações\nOpção: "))
-    
-    # Trata o caso 1: Fazer uma avaliação
-    match op:
-        case 1:
-            cnpj = input("Qual o CNPJ de quem você deseja fazer a avaliação? ")
-            if conn._buscar_cnpj(cnpj) is False:
-                # Coleta detalhes da avaliação
-                avaliacao['cnpj_av'] = cnpj
-                avaliacao['nome_prestador_av'] = conn.retornarNome(cnpj)
-                avaliacao['cpf_av'] = usuario_autenticado.cpf
-                avaliacao['nome_cliente_av'] = conn.procuraNome(usuario_autenticado.cpf)
-                avaliacao_desc = input("Faça sua avaliação: ")
-                avaliacao['descricao'] = avaliacao_desc
-                # Cria entrada de avaliação
-                conn.create_line(avaliacao, 'avaliacoes_prestadores')
-                print("Avaliação cadastrada!")
-                time.sleep(3)
-                menu_cliente(usuario_autenticado)
-            else:
-                print("CNPJ inválido.")
-        
-        # Trata o caso 2: Visualizar avaliações
-        case 2:
-            cnpj = input("Qual o CNPJ de quem você deseja visualizar as avaliações? ")
-            conn.visualizar_avaliações_prestadores(cnpj)
-            time.sleep(4)
-            menu_cliente(usuario_autenticado)
-
-                
-
-
-def formataSaidaServicosDisponiveis(): #trata uma entrada em formato de tupla para que ela retorna um dicionario 
-
-    servicos = executeQuerySelectServices()
-    marcadores = ('Nome do Prestador', 'Tipo de Serviço','Contato', 'Descrição do Serviço')
-    valores = []
-    for dados in servicos:
-                valores.append(dict(zip(marcadores, dados)))        
-    dict_servicos = valores[0]
-    
-    return dict_servicos  
-
-def dictFormat(result_from_dict : dict): #Forma a saida de um dicionário no print
-    print('\n')
-    for j, k in result_from_dict.items():
-        print(f'{j}: {k}')
-    print('\n')
-
-def submenuSolicitacao(usuario_autenticado: UsuarioAutenticado):
-    # Cria um dicionário vazio para armazenar os dados da solicitação
-    solicitacao = {}
-
-    # Chama a função cadastraTipo() para obter a opção de tipo e o resultado
-    opcaoTipo, resultado = cadastraTipo()
-
-    # Verifica se a opção é inválida
-    if resultado == False:
-        print("Opção inválida.")
-    else:
-        # Preenche os campos do dicionário de solicitação
-        solicitacao['cpf_sol'] = usuario_autenticado.cpf
-        solicitacao['nome_usuario_sol'] = conn.procuraNome(usuario_autenticado.cpf)
-        solicitacao['cnpj_sol'] = None
-        solicitacao['nome_prestador_sol'] = None
-        solicitacao['data_horario'] = datetime.now(pytz.UTC)
-        solicitacao['id_tipo'] = opcaoTipo
-        solicitacao['tipo'] = resultado
-        solicitacao['status'] = "EM ABERTO"
-
-        try:
-            # Tenta criar uma linha na tabela 'solicitacoes'
-            conn.create_line(solicitacao, 'solicitacoes')
-            print("Solicitação cadastrada!")
-            menu_cliente(usuario_autenticado)
-        except psycopg2.Error as e:
-            print(f"Erro ao cadastrar solicitação: {e}")
-
-
-def submenuBuscaServicos():
-    
-   return """ 
-[1. Pesquisar por tipo de serviço]
-[2. Pesquisar por CEP  
-""" #retorna um submenu de serviços
-
-
-
 #comandos da tela incial
-def tela_inicial(opcao):
+def tela_inicial(opcao): #opcao = prestador/cliente #subopcao = criar conta/fazer login
 
     subopcao = int(input("[1] Criar conta" + 
                        "\n[2] Já possuo conta" + 
                        "\nOpção: "))
 
     match subopcao:
-        case 1:
-            if (opcao == 1):
+        case 1: # criar conta
+            if (opcao == 1): # se é prestador 
                 limparTela()
                 sem_conta_prestador()
-            elif (opcao == 2):
+            elif (opcao == 2): # se é cliente 
                 limparTela()
                 sem_conta_cliente()
-            else:
+            else: 
                 limparTela()
                 print("Opção inválida.")
-        case 2:
-            if (opcao == 1):
+        case 2:  # fazer login
+            if (opcao == 1): # se é prestador 
                 limparTela()
                 login_prestador()
                 
-            elif (opcao == 2):
+            elif (opcao == 2): # se é cliente 
                 limparTela()
                 login_cliente()
             else:
