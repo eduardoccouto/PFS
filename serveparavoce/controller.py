@@ -110,7 +110,7 @@ class PostGreeDB(CreateTables):
             rows = cursor.fetchall()
 
             for row in rows:
-                print(f"CPF: {row[0]}" + f"\nNome: {row[1]}" + f"\nTelefone: {row[2]}")  
+                print(f"CPF: {row[0]}" + f"\nNome: {row[1]}" + f"\nTelefone: {row[3]}")  
 
         except psycopg2.Error as e:
             print(f"Erro ao retornar informações do usuário: {e}")
