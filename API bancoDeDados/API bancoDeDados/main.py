@@ -166,21 +166,28 @@ def sem_conta_prestador():
             return prestador
     
 
+
 def login_prestador():
+    
     cnpj = input("Digite seu CNPJ (apenas números): ")
 
-    while True:
-        if (conn._buscar_cnpj(cnpj) is True):
-            print("Usuário não cadastrado.")
-            break
+    if conn._buscar_cnpj(cnpj) is True:
+        print("Usuário não cadastrado \n Digite novamente.")
+        return login_prestador()
+
+    else:
+        senha = input("Informe sua senha: ")
+        if conn.validar_login_prestador(cnpj, senha) is True:
+            prestador_autenticado = PrestadorAutenticado(cnpj, senha)
+            menu_prestador(prestador_autenticado)
+            return menu_prestador(prestador_autenticado)
+            
+            
         else:
-            senha = input("Informe sua senha: ")
-            if (conn.validar_login_prestador(cnpj, senha) == True):
-                prestador_autenticado = PrestadorAutenticado(cnpj, senha)
-                menu_prestador(prestador_autenticado)
-            else:
-                print("Senha incorreta. ")
-                main()
+            print("Senha incorreta. ")
+            main()
+
+            
 
 
 def modificar_solicitacao(prestador_autenticado : PrestadorAutenticado):

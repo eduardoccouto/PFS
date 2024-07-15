@@ -377,8 +377,8 @@ class PostGreeDB:
 
     def retornarNome(self, cnpj):
         cursor = self._conn.cursor()
-        query = "SELECT nome_prestador FROM prestadores WHERE cnpj= %s ;"
-        cursor.execute(query,(cnpj))
+        query = f"""SELECT nome_prestador FROM prestadores WHERE cnpj= '{cnpj}' ;"""
+        cursor.execute(query)
         resultado = cursor.fetchone()
         return resultado[0]
 
